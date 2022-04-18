@@ -14,7 +14,7 @@ Use LeakedViewControllerDetector.shared.onLeakedViewControllerDetected() to star
 
 public class LeakedViewControllerDetector {
     
-    static let shared = LeakedViewControllerDetector()
+    public static let shared = LeakedViewControllerDetector()
 
     private init() {
         UIViewController.swizzleLifecycleMethods()
@@ -27,7 +27,7 @@ public class LeakedViewControllerDetector {
     /**
     Make sure to call this on shared and not on LeakedViewControllerDetector directly.
     
-     - Parameter delay: The time allowed for each ViewController to deinit itself after it has closed. If it is still in memory after the delay the callback will be triggered. It can be increased to prevent certain false positives.
+     - Parameter delay: The time in seconds allowed for each ViewController to deinit itself after it has closed. If it is still in memory after the delay the callback will be triggered. It can be increased to prevent certain false positives.
      - Parameter showStates: Set to true to include the application state (active, inactive, background) of when a leak was detected/resolved to the message string. Useful if you suspect a leak only occurs when in the background for example.
      - Parameter callback: This will be triggered every time a ViewController closes but doesn't deinit. It will trigger again once it does deinit (if ever). It provides the ViewController that has leaked and a warning message string that you can use to log. The provided ViewController will be nil in case it deinnited. Return true to show an alert dialog with the message. Return nil if you want to prevent a future deinit of the ViewController from triggering the callback again (useful if you want to ignore warnings of certain ViewControllers).
      */
