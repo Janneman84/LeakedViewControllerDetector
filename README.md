@@ -75,7 +75,7 @@ That's it! The leak detector is now fully operational. If your app is functionin
 As you can see in the quickstart it is recommended to treat debug and release builds differently. If you're debugging it's nice to get a popup dialog warning you of an issue, but you don't want your users to see this, so you log instead. Let's walk through the arguments of the callback.
 
 ``` swift
-MemoryLeakDetector.shared.onLeakedViewControllerDetected(delay: 1/60.0) { leakedViewController, message in
+LeakedViewControllerDetector.shared.onLeakedViewControllerDetected(delay: 1/60.0) { leakedViewController, message in
     return true
 }
 ```
@@ -94,7 +94,7 @@ The callback expects an optional Bool to be returned:
 If for some reason you want to ignore warnings of certain ViewControllers, make sure you return `nil`:
 
 ``` swift
-MemoryLeakDetector.shared.onLeakedViewControllerDetected(delay: 1/60.0) { leakedViewController, message in
+LeakedViewControllerDetector.shared.onLeakedViewControllerDetected(delay: 1/60.0) { leakedViewController, message in
     //return nil to ignore:
     if leakedViewController is IgnoreThisViewController {
         return nil
