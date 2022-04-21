@@ -99,6 +99,9 @@ LeakedViewControllerDetector.shared.onLeakedViewControllerDetected(delay: 1/60.0
     if leakedViewController is IgnoreThisViewController {
         return nil
     }
+    if type(of: leakedViewController).description() == "_IgnoreThisPrivateViewController" {
+        return nil
+    }
     if leakedViewController.view.tag == -1 {
         return nil
     }
