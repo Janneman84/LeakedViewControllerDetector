@@ -39,12 +39,12 @@ public class LeakedViewControllerDetector {
 }
 
 fileprivate extension UIViewController {
-       
+        
     static func swizzleLifecycleMethods() {
         //this makes sure it can only swizzle once
         _ = self.actuallySwizzleLifecycleMethods
     }
-    
+       
     private static let actuallySwizzleLifecycleMethods: Void = {
         let originalVdaMethod = class_getInstanceMethod(UIViewController.self, #selector(viewDidDisappear(_:)))
         let swizzledVdaMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdViewDidDisappear(_:)))
@@ -59,16 +59,22 @@ fileprivate extension UIViewController {
         method_exchangeImplementations(originalRfpMethod!, swizzledRfpMethod!)
     }()
     
+    func shouldIgnore() -> Bool {
+        return ["UICompatibilityInputViewController", "_UIAlertControllerTextFieldViewController"].contains(type(of: self).description())
+    }
+    
     @objc func lvcdViewDidLoad() -> Void {
         lvcdViewDidLoad() //run original implementation
-        NotificationCenter.default.addObserver(self, selector: #selector(checkForMemoryLeak), name: Notification.Name.lvcdCheckForMemoryLeak, object: nil)
+        if !shouldIgnore() {
+            NotificationCenter.default.addObserver(self, selector: #selector(checkForMemoryLeak), name: Notification.Name.lvcdCheckForMemoryLeak, object: nil)
+        }
     }
 
     @objc func lvcdViewDidDisappear(_ animated: Bool) -> Void {
         lvcdViewDidDisappear(animated) //run original implementation
         
         //ignore parent VCs because one of their children will trigger viewDidDisappear() too
-        if !(self is UINavigationController || self is UITabBarController) {
+        if !(self is UINavigationController || self is UITabBarController) && !shouldIgnore() {
             NotificationCenter.default.post(name: Notification.Name.lvcdCheckForMemoryLeak, object: nil) //this will check every VC, just in case
         }
     }
