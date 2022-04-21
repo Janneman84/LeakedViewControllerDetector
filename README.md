@@ -204,6 +204,20 @@ override func viewDidDisappear(_ animated: Bool) {
 ```
 So present a NavigationController with a ViewController with this code. Then close the NavigationController and you'll see a memory warning.
 
+### 6. UIAlertController action callback
+Sometimes you want to reference an alert inside one of its actions' callback. In that case make sure you use `unowned` or `weak` or the alert will linger in memory forever. You can use `unowned` if you're certain it won't be nil, it's basically the same as explicitly unwrapping `weak`:
+``` swift
+//since we're referencing alert inside the callbacks use unowned or weak or it will never deinit
+let alert = UIAlertController.init(title: "Retain test", message: nil, preferredStyle: .alert)
+alert.addAction(UIAlertAction.init(title: "Unowned", style: .default) { [unowned alert] action in
+    print(alert)
+})
+alert.addAction(UIAlertAction.init(title: "Weak", style: .default) { [weak alert] action in
+    print(alert!) //explicitly unwrapping weak alert works basically the same as using unowned
+})
+self.present(alert, animated: true)
+```
+
 ### Tips are welcome
 
 
