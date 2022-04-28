@@ -1,4 +1,5 @@
 # LeakedViewControllerDetector
+[![Swift Package Manager compatible](https://img.shields.io/badge/spm-compatible-brightgreen.svg?style=flat)](https://swift.org/package-manager)
 
 ### _Find leaked ViewControllers without even looking for them!_
 
@@ -19,11 +20,14 @@ _Another alert pops up if the leak resolves itself:_
 ![lvcd_alert2](https://user-images.githubusercontent.com/9085167/163881927-740cb4f8-9541-4b32-a0dc-6ab421f4fb79.jpg)
 
 ## Quickstart
-First install this package through SPM using the Github url. Make sure the library is linked to the target: 
+First install this package through SPM using the Github url `https://github.com/Janneman84/LeakedViewControllerDetector`. I suggest to use the main branch. Make sure the library is linked to the target: 
 
 ![lvcd_librarylink](https://user-images.githubusercontent.com/9085167/163882303-63abc092-fff0-46dd-9d0d-4f22a18cf7ae.png)
 
-Add import to `AppDelegate`:
+Or you can just copy/paste the LeakedViewControllerDetector.swift file to your project, which is not recommended since you won't receive updates this way.
+
+
+Next add import to `AppDelegate`:
 ``` swift
 import LeakedViewControllerDetector
 ```
@@ -41,11 +45,11 @@ LeakedViewControllerDetector.onDetect() { leakedViewController, message in
 As you can see the example uses different implementations for debug and release builds by checking the DEBUG flag. More details and examples are further below.
 
 ### Review your code
-First, make sure that you always call `super` if you override `viewDidAppear()` and/or `viewDidDisappear()` in your ViewControllers. This is common practice so you probably already did this anyway, but is essential that you do now.
+First, make sure that you always call `super` if you override `viewDidAppear()` and/or `viewDidDisappear()` in your ViewControllers. This is common practice so you probably already did this anyway, but it is essential that you do now.
 
 ``` swift
 override func viewDidAppear(_ animated: Bool) {
-    super.viewDidAppear(_ animated: Bool) //don't forget this!
+    super.viewDidAppear(animated) //don't forget this!
     ...
 }
 
