@@ -168,7 +168,7 @@ fileprivate extension UIViewController {
             }
         } else {
 
-            if #available(iOS 13, *) {
+            if #available(iOS 13, tvOS 13, *) {
                 if let windowScene = UIApplication.shared.lvcdGetFirstActiveWindowScene() {
                     LeakedViewControllerDetector.warningWindow = UIWindow.init(windowScene: windowScene)
                 } else {
@@ -269,7 +269,7 @@ fileprivate extension UIApplication {
     ///get a window, preferably once that is in foreground (active) in case you have multiple windows on iPad
     var lvcdActiveMainKeyWindow: UIWindow? {
         get {
-            if #available(iOS 13, *) {
+            if #available(iOS 13, tvOS 13, *) {
                 let activeScenes = connectedScenes.filter({$0.activationState == UIScene.ActivationState.foregroundActive})
                 return (activeScenes.count > 0 ? activeScenes : connectedScenes)
                     .flatMap {  ($0 as? UIWindowScene)?.windows ?? [] }
@@ -280,7 +280,7 @@ fileprivate extension UIApplication {
         }
     }
     
-    @available(iOS 13.0, *)
+    @available(iOS 13.0, tvOS 13, *)
     func lvcdGetFirstActiveWindowScene() -> UIWindowScene? {
         let activeScenes = UIApplication.shared.connectedScenes.filter({$0.activationState == UIScene.ActivationState.foregroundActive && $0 is UIWindowScene})
         return (activeScenes.count > 0 ? activeScenes : UIApplication.shared.connectedScenes).first(where: {$0 is UIWindowScene}) as? UIWindowScene
