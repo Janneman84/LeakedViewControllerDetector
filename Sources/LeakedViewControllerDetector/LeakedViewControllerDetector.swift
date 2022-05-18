@@ -7,25 +7,25 @@
 import UIKit
 
 /**
-Automatically detects and warns you whenever a ViewController in your app closes but doesn't deinit.
+Automatically detects and warns you whenever a ViewController in your app closes and it or one of its Views don't deinit.
  
 Use LeakedViewControllerDetector.onDetect() to start detecting leaks.
 */
 
 public class LeakedViewControllerDetector {
     
-    fileprivate static var callback: ((UIViewController?, String)->Bool?)?
+    fileprivate static var callback: ((UIViewController?, UIView?, String)->Bool?)?
     fileprivate static var delay: Double = 1.0
     fileprivate static var warningWindow: UIWindow?
 
     /**
-    Triggers the callback whenever a leaked ViewController is detected.
+    Triggers the callback whenever a leaked ViewController or View is detected.
     
-     - Parameter debugDelay: The time in seconds allowed for each ViewController to deinit itself after it has closed. If it is still in memory after the delay the callback will be triggered. It can be increased to prevent certain false positives. This value is only used for builds flagged with DEBUG, for release build the value of releaseDelay is used.
+     - Parameter debugDelay: The time in seconds allowed for each ViewController to deinit itself after it has closed. If it or any of its views are still in memory after the delay the callback will be triggered. Increasing the delay may prevent certain false positives. This value is only used for builds flagged with DEBUG, for release build the value of releaseDelay is used.
      - Parameter releaseDelay: Same as debugDelay but this value is used for release builds.
-     - Parameter callback: This will be triggered every time a ViewController closes but doesn't deinit. It will trigger again once it does deinit (if ever). It provides the ViewController that has leaked and a warning message string that you can use to log. The provided ViewController will be nil in case it deinnited. Return true to show an alert dialog with the message. Return nil if you want to prevent a future deinit of the ViewController from triggering the callback again (useful if you want to ignore warnings of certain ViewControllers).
+     - Parameter callback: This will be triggered every time a ViewController closes but it or one of its views don't deinit. It will trigger again once it does deinit (if ever). It either provides the ViewController or the View that has leaked and a warning message string that you can use to log. The provided ViewController and View will both be nil in case of a deinit warning. Return true to show an alert dialog with the message. Return nil if you want to prevent a future deinit of the ViewController or View from triggering the callback again (useful if you want to ignore warnings of certain ViewControllers/Views).
      */
-    public static func onDetect(debugDelay: TimeInterval = 0.1, releaseDelay: TimeInterval = 1.0, callback: @escaping (UIViewController?, String)->Bool? ) {
+    public static func onDetect(debugDelay: TimeInterval = 0.1, releaseDelay: TimeInterval = 1.0, callback: @escaping (UIViewController?, UIView?, String)->Bool? ) {
         UIViewController.lvcdSwizzleLifecycleMethods()
         #if DEBUG
         self.delay = debugDelay
@@ -36,14 +36,40 @@ public class LeakedViewControllerDetector {
     }
 }
 
+public extension UIView {
+    
+    /**
+    Same as removeFromSuperview() but it also checks if it or any of its subviews don't deinit after the view is removed from the view tree. In that case the LeakedViewControllerDetector warning callback will be triggered.
+     
+    Before calling this make sure you have set LeakedViewControllerDetector.onDetect(){}, preferably in AppDelegate's application(_:didFinishLaunchingWithOptions:).
+    
+    Only use this method if the view is supposed to deinit shortly after it is removed from the view tree, or else it may trigger false warnings.
+     
+     */
+    
+    func removeFromSuperviewDetectLeaks() {
+               
+        removeFromSuperview()
+        
+        if LeakedViewControllerDetector.callback == nil {
+            assertionFailure("Callback not set. Add LeakedViewControllerDetector.onDetect(){} to AppDelegate's application(_:didFinishLaunchingWithOptions:)")
+        } else {
+            UIViewController.checkForLeakedSubViewsIn(view: self, viewController: nil)
+        }
+    }
+}
+
 fileprivate extension UIViewController {
+    
+    static let lvcdCheckForMemoryLeakNotification = Notification.Name("lvcdCheckForMemoryLeak")
+    static let lvcdCheckForSplitViewVCMemoryLeakNotification = Notification.Name("lvcdCheckForSplitViewVCMemoryLeak")
         
     static func lvcdSwizzleLifecycleMethods() {
         //this makes sure it can only swizzle once
         _ = self.lvcdActuallySwizzleLifecycleMethods
     }
        
-    private static let lvcdActuallySwizzleLifecycleMethods: Void = {
+    static let lvcdActuallySwizzleLifecycleMethods: Void = {
         let originalVdaMethod = class_getInstanceMethod(UIViewController.self, #selector(viewDidAppear(_:)))
         let swizzledVdaMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdViewDidAppear(_:)))
         method_exchangeImplementations(originalVdaMethod!, swizzledVdaMethod!)
@@ -55,92 +81,170 @@ fileprivate extension UIViewController {
         let originalRfpMethod = class_getInstanceMethod(UIViewController.self, #selector(removeFromParent))
         let swizzledRfpMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdRemoveFromParent))
         method_exchangeImplementations(originalRfpMethod!, swizzledRfpMethod!)
+        
+        let originalSdvcMethod = class_getInstanceMethod(UISplitViewController.self, #selector(showDetailViewController(_:sender:)))
+        let swizzledSdvcMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdShowDetailViewController(_:sender:)))
+        method_exchangeImplementations(originalSdvcMethod!, swizzledSdvcMethod!)
+      
     }()
     
+    static let lvcdIgnoredViewControllers = ["_UIAlertControllerTextFieldViewController",
+                                         "UIInputWindowController",
+                                         "UICompatibilityInputViewController",
+                                         "UISystemKeyboardDockController",
+                                         "UISystemInputAssistantViewController",
+                                         "UIPredictionViewController" ]
+    
     func lvcdShouldIgnore() -> Bool {
-        return ["UICompatibilityInputViewController", "_UIAlertControllerTextFieldViewController"].contains(type(of: self).description())
+        return Self.lvcdIgnoredViewControllers.contains(type(of: self).description())
+        || self.view.layer.sublayers?.first(where: {$0 as? LVCDSplitViewLayer != nil}) != nil
     }
     
+   
     @objc func lvcdViewDidAppear(_ animated: Bool) -> Void {
         lvcdViewDidAppear(animated) //run original implementation
-//        print("lvcdViewDidAppear \(self)")
         if !lvcdShouldIgnore() {
-            NotificationCenter.default.removeObserver(self, name: Notification.Name.lvcdCheckForMemoryLeak, object: nil)
-            NotificationCenter.default.addObserver(self, selector: #selector(lvcdCheckForMemoryLeak), name: Notification.Name.lvcdCheckForMemoryLeak, object: nil)
+            NotificationCenter.default.removeObserver(self, name: Self.lvcdCheckForMemoryLeakNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(lvcdCheckForMemoryLeak), name: Self.lvcdCheckForMemoryLeakNotification, object: nil)
         }
     }
 
     @objc func lvcdViewDidDisappear(_ animated: Bool) -> Void {
         lvcdViewDidDisappear(animated) //run original implementation
-//        print("lvcdViewDidDisappear \(self)")
         //ignore parent VCs because one of their children will trigger viewDidDisappear() too
-        if !(self is UINavigationController || self is UITabBarController) && !lvcdShouldIgnore() {
-            NotificationCenter.default.post(name: Notification.Name.lvcdCheckForMemoryLeak, object: nil) //this will check every VC, just in case
+        
+        if !(self is UINavigationController || self is UITabBarController || self is UIPageViewController) && !lvcdShouldIgnore() {
+            NotificationCenter.default.post(name: Self.lvcdCheckForMemoryLeakNotification, object: nil) //this will check every VC, just in case
         }
     }
     
     @objc func lvcdRemoveFromParent() -> Void {
         lvcdRemoveFromParent() //run original implementation
-        NotificationCenter.default.post(name: Notification.Name.lvcdCheckForMemoryLeak, object: nil)
+        if !lvcdShouldIgnore() {
+            NotificationCenter.default.post(name: Self.lvcdCheckForMemoryLeakNotification, object: nil)
+        }
     }
     
-    @objc private func lvcdCheckForMemoryLeak() {
-//        print("lvcdCheckForMemoryLeak \(self)")
-        let delay = LeakedViewControllerDetector.delay
+    @objc func lvcdShowDetailViewController(_ vc: UIViewController, sender: Any?) {
+        NotificationCenter.default.post(name: Self.lvcdCheckForSplitViewVCMemoryLeakNotification), object: self)
+        NotificationCenter.default.post(name: Self.lvcdCheckForMemoryLeakNotification, object: nil)
+        if vc.view.layer.sublayers?.first(where: {$0 as? LVCDSplitViewLayer != nil}) == nil {
+            let mldLayer = LVCDSplitViewLayer()
+            mldLayer.splitViewController = self as? UISplitViewController
+            mldLayer.viewController = vc
+            vc.view.layer.addSublayer(mldLayer)
+        }
+       
+        lvcdShowDetailViewController(vc, sender: sender) //run original implementation
+    }
+    
+    static var lvcdMemoryCheckQueue = Set<ObjectIdentifier>()
+    
+    static func checkForLeakedSubViewsIn(view: UIView, viewController: UIViewController? = nil) {
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-            
-            //once a leak was detected it adds a special layer to the root view to allow to detect if it deinits, if somehow already present no need to proceed
-            guard let self = self, self.view.layer.sublayers?.first(where: {$0 as? LVCDLayer != nil}) == nil else { return }
-            
-            //these conditions constitute a 'limbo' ViewController, i.e. a memory leak:
-            if (!self.isViewLoaded || self.view.window == nil) && self.parent == nil && self.presentedViewController == nil {
-                
-                //once warned don't warn again
-                NotificationCenter.default.removeObserver(self, name: Notification.Name.lvcdCheckForMemoryLeak, object: nil)
-               
-                let errorTitle = "VIEWCONTROLLER STILL IN MEMORY"
-                var errorMessage = self.debugDescription
-                
-                //add children's names to the message in case of NavVC or TabVC for easier identification
-                if let nvc = self as? UINavigationController {
-                    errorMessage = "\(errorMessage):\n\(nvc.viewControllers)"
-                }
-                if let tbvc = self as? UITabBarController, let vcs = tbvc.viewControllers {
-                    errorMessage = "\(errorMessage):\n\(vcs)"
-                }
-                
-                let showAlert = LeakedViewControllerDetector.callback?(self, "\(errorTitle) \(errorMessage)")
-                
-                if showAlert ?? false {
-//                    print("\(errorTitle) \(errorMessage)")
-                    UIViewController.lvcdShowWarningAlert(errorTitle: errorTitle, errorMessage: errorMessage, objectIdentifier: Int.init(bitPattern: ObjectIdentifier.init(self)))
-                }
-                
-                if showAlert != nil {
-                    let mldLayer = LVCDLayer()
-                    mldLayer.memoryLeakDetectionDate = Date().timeIntervalSince1970 - delay
-                    mldLayer.errorMessage = errorMessage
-                    mldLayer.objectIdentifier = Int.init(bitPattern: ObjectIdentifier.init(self))
-                    self.view.layer.addSublayer(mldLayer)
+        let delay = LeakedViewControllerDetector.delay
+        let checkVC = viewController != nil
+        
+        view.iterateSubViews() { subview in
+            if !checkVC || subview.viewController == viewController {
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak viewController, weak subview] in
+                    if (!checkVC || viewController == nil), let subview = subview, subview.superview == nil {
+
+                        let errorTitle = "VIEW STILL IN MEMORY"
+                        let errorMessage = subview.debugDescription
+
+                        let showAlert = LeakedViewControllerDetector.callback?(nil, subview, "\(errorTitle) \(errorMessage)")
+                        if showAlert ?? false {
+                            Self.lvcdShowWarningAlert(errorTitle: errorTitle, errorMessage: errorMessage, objectIdentifier: Int.init(bitPattern: ObjectIdentifier.init(subview)))
+                        }
+
+                        if showAlert != nil {
+                            let mldLayer = LVCDLayer()
+                            mldLayer.memoryLeakDetectionDate = Date().timeIntervalSince1970 - delay
+                            mldLayer.errorMessage = errorMessage
+                            mldLayer.objectIdentifier = Int.init(bitPattern: ObjectIdentifier.init(subview))
+                            mldLayer.objectType = "VIEW"
+                            subview.layer.addSublayer(mldLayer)
+                        }
+
+                    }
                 }
             }
         }
     }
     
+    
+    @objc private func lvcdCheckForMemoryLeak() {
+        let objectIdentifier = ObjectIdentifier.init(self)
+        
+        //in some cases lvcdCheckForMemoryLeakNotification may be called multiple times at once, this guard prevents double checking
+        guard !Self.lvcdMemoryCheckQueue.contains(objectIdentifier) else { return }
+        Self.lvcdMemoryCheckQueue.insert(objectIdentifier)
+        
+        DispatchQueue.main.async { [self] in
+
+            Self.checkForLeakedSubViewsIn(view: view, viewController: self)
+            
+            let delay = LeakedViewControllerDetector.delay*10
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                
+                //once a leak was detected it adds a special layer to the root view to allow to detect if it deinits, if somehow already present no need to proceed
+                guard let self = self, self.view.layer.sublayers?.first(where: {$0 as? LVCDLayer != nil || $0 as? LVCDSplitViewLayer != nil}) == nil else { return }
+                
+                //these conditions constitute a 'limbo' ViewController, i.e. a memory leak:
+                if (!self.isViewLoaded || self.view.window == nil) && self.parent == nil && self.presentedViewController == nil {
+                    
+                    //once warned don't warn again
+                    NotificationCenter.default.removeObserver(self, name: Self.lvcdCheckForMemoryLeakNotification, object: nil)
+                   
+                    let errorTitle = "VIEWCONTROLLER STILL IN MEMORY"
+                    var errorMessage = self.debugDescription
+                    
+                    //add children's names to the message in case of NavVC or TabVC for easier identification
+                    if let nvc = self as? UINavigationController {
+                        errorMessage = "\(errorMessage):\n\(nvc.viewControllers)"
+                    }
+                    if let tbvc = self as? UITabBarController, let vcs = tbvc.viewControllers {
+                        errorMessage = "\(errorMessage):\n\(vcs)"
+                    }
+                    
+                    let showAlert = LeakedViewControllerDetector.callback?(self, nil, "\(errorTitle) \(errorMessage)")
+                    
+                    if showAlert ?? false {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                            Self.lvcdShowWarningAlert(errorTitle: errorTitle, errorMessage: errorMessage, objectIdentifier: Int.init(bitPattern: ObjectIdentifier.init(self)))
+                        }
+                    }
+                    
+                    if showAlert != nil {
+                        let mldLayer = LVCDLayer()
+                        mldLayer.memoryLeakDetectionDate = Date().timeIntervalSince1970 - delay
+                        mldLayer.errorMessage = errorMessage
+                        mldLayer.objectIdentifier = Int.init(bitPattern: ObjectIdentifier.init(self))
+                        mldLayer.objectType = "VIEWCONTROLLER"
+                        self.view.layer.addSublayer(mldLayer)
+                    }
+                }
+            }
+            Self.lvcdMemoryCheckQueue.remove(objectIdentifier)
+        }
+    }
+    
     //call this if VC deinits, if memory leak was detected earlier it apparently resolved itself, so notify this:
-    class func lvcdMemoryLeakResolved(memoryLeakDetectionDate: TimeInterval, errorMessage: String, objectIdentifier: Int) {
+    class func lvcdMemoryLeakResolved(memoryLeakDetectionDate: TimeInterval, errorMessage: String, objectIdentifier: Int, objectType: String) {
 
         let interval = Date().timeIntervalSince1970 - memoryLeakDetectionDate
         
-        let errorTitle = "LEAKED VIEWCONTROLLER DEINNITED"
+        let errorTitle = "LEAKED \(objectType) DEINNITED"
         let errorMessage = String(format: "\(errorMessage)\n\nDeinnited after %.3fs.", interval)
                 
-        if LeakedViewControllerDetector.callback?(nil, "\(errorTitle) \(errorMessage)") ?? false {
-//            print("\(errorTitle) \(errorMessage)")
-            UIViewController.lvcdShowWarningAlert(errorTitle: errorTitle, errorMessage: errorMessage, objectIdentifier: objectIdentifier)
+        if LeakedViewControllerDetector.callback?(nil, nil, "\(errorTitle) \(errorMessage)") ?? false {
+            Self.lvcdShowWarningAlert(errorTitle: errorTitle, errorMessage: errorMessage, objectIdentifier: objectIdentifier)
         }
     }
+    
+    static var lvcdAlertQueue = [UIAlertController]()
     
     class func lvcdShowWarningAlert(errorTitle: String?, errorMessage: String?, objectIdentifier: Int) {
 
@@ -151,15 +255,30 @@ fileprivate extension UIViewController {
                 LeakedViewControllerDetector.warningWindow = nil
             }
         })
-
+        lvcdShowWarningAlert(alert: alert, objectIdentifier: objectIdentifier)
+    }
+    
+    class func lvcdShowWarningAlert(alert: UIAlertController, objectIdentifier: Int) {
         if let warningWindow = LeakedViewControllerDetector.warningWindow {
             if let topViewController = UIApplication.lvcdTopViewController(controller: warningWindow.rootViewController) {
                 if let alertController = topViewController as? LVCDAlertController, alertController.view.tag == objectIdentifier {
                     alertController.dismiss(animated: false) {
-                        UIApplication.lvcdTopViewController(controller: warningWindow.rootViewController)?.present(alert, animated: true, completion: nil)
+                        UIApplication.lvcdTopViewController(controller: warningWindow.rootViewController)?.present(alert, animated: true) {
+                            if let alert = lvcdAlertQueue.popLast() {
+                                lvcdShowWarningAlert(alert: alert, objectIdentifier: -1)
+                            }
+                        }
                     }
                 } else {
-                    topViewController.present(alert, animated: true)
+                    if topViewController.isBeingPresented {
+                        lvcdAlertQueue.insert(alert, at: 0)
+                    } else {
+                        topViewController.present(alert, animated: lvcdAlertQueue.count < 2) {
+                            if let alert = lvcdAlertQueue.popLast() {
+                                lvcdShowWarningAlert(alert: alert, objectIdentifier: -1)
+                            }
+                        }
+                    }
                 }
             } else {
                 #if DEBUG
@@ -167,7 +286,6 @@ fileprivate extension UIViewController {
                 #endif
             }
         } else {
-
             if #available(iOS 13, tvOS 13, *) {
                 if let windowScene = UIApplication.shared.lvcdGetFirstActiveWindowScene() {
                     LeakedViewControllerDetector.warningWindow = UIWindow.init(windowScene: windowScene)
@@ -188,7 +306,11 @@ fileprivate extension UIViewController {
                 UIView.animate(withDuration: 0.25) {
                     warningWindow.backgroundColor = .systemPink.withAlphaComponent(0.25)
                 }
-                warningWindow.rootViewController?.present(alert, animated: true, completion: nil)
+                warningWindow.rootViewController?.present(alert, animated: true) {
+                    if let alert = lvcdAlertQueue.popLast() {
+                        lvcdShowWarningAlert(alert: alert, objectIdentifier: -1)
+                    }
+                }
             }
         }
     }
@@ -200,10 +322,6 @@ fileprivate extension UIViewController {
         override func viewDidDisappear(_ animated: Bool) {
             //purposely not calling super here so it won't trigger a warning itself
         }
-        
-//        deinit {
-//            print("\(self) deinit")
-//        }
     }
     
     class LVCDAlertController: UIAlertController {
@@ -228,43 +346,52 @@ fileprivate extension UIViewController {
                 LeakedViewControllerDetector.warningWindow?.alpha = 1.0
             }
         }
-        
-//        deinit {
-//            print("\(self) deinit")
-//        }
     }
     
-    class LVCDLayer: CALayer {
-        var memoryLeakDetectionDate:TimeInterval = 0.0
-        var errorMessage: String = ""
-        var objectIdentifier: Int = 0
-        deinit {
-            UIViewController.lvcdMemoryLeakResolved(memoryLeakDetectionDate: memoryLeakDetectionDate, errorMessage: errorMessage, objectIdentifier: objectIdentifier)
+    class LVCDSplitViewLayer: CALayer {
+        weak var splitViewController: UISplitViewController?
+        weak var viewController: UIViewController? { didSet {
+            NotificationCenter.default.addObserver(self, selector: #selector(checkIfBelongsToSplitViewController(_:)), name: UIViewController.lvcdCheckForSplitViewVCMemoryLeakNotification, object: nil)
+        }}
+        
+        @objc func checkIfBelongsToSplitViewController(_ notification: Notification ) {
+            if notification.object as? UISplitViewController == splitViewController {
+                self.removeFromSuperlayer()
+                if !viewController!.lvcdShouldIgnore() {
+                    NotificationCenter.default.removeObserver(viewController!, name: UIViewController.lvcdCheckForMemoryLeakNotification, object: nil)
+                    NotificationCenter.default.addObserver(viewController!, selector: #selector(lvcdCheckForMemoryLeak), name: UIViewController.lvcdCheckForMemoryLeakNotification, object: nil)
+                }
+            }
         }
     }
-    
+}
+
+fileprivate class LVCDLayer: CALayer {
+    var memoryLeakDetectionDate: TimeInterval = 0.0
+    var errorMessage = ""
+    var objectIdentifier = 0
+    var objectType = ""
+    deinit {
+        UIViewController.lvcdMemoryLeakResolved(memoryLeakDetectionDate: memoryLeakDetectionDate, errorMessage: errorMessage, objectIdentifier: objectIdentifier, objectType: objectType)
+    }
+}
+
+fileprivate extension UIView {
+    func iterateSubViews(onViewFound: (UIView)->(Void)) {
+        onViewFound(self)
+        for subview in subviews {
+            subview.iterateSubViews(onViewFound: onViewFound)
+        }
+    }
+}
+
+fileprivate extension UIResponder {
+    var viewController: UIViewController? {
+        return next as? UIViewController ?? next?.viewController
+    }
 }
 
 fileprivate extension UIApplication {
-
-    class func lvcdTopViewController(controller: UIViewController? = UIApplication.shared.lvcdActiveMainKeyWindow?.rootViewController) -> UIViewController? {
-
-        if let navigationController = controller as? UINavigationController {
-            return lvcdTopViewController(controller: navigationController.visibleViewController)
-        }
-        if let tabController = controller as? UITabBarController {
-            if let selected = tabController.selectedViewController {
-                return lvcdTopViewController(controller: selected)
-            }
-        }
-        if let presented = controller?.presentedViewController {
-            return lvcdTopViewController(controller: presented)
-        }
-        if let pageVC = controller as? UIPageViewController {
-            return pageVC.viewControllers?.first
-        }
-        return controller
-    }
 
     ///get a window, preferably once that is in foreground (active) in case you have multiple windows on iPad
     var lvcdActiveMainKeyWindow: UIWindow? {
@@ -280,13 +407,13 @@ fileprivate extension UIApplication {
         }
     }
     
+    class func lvcdTopViewController(controller: UIViewController? = UIApplication.shared.lvcdActiveMainKeyWindow?.rootViewController) -> UIViewController? {
+        return controller?.presentedViewController != nil ? lvcdTopViewController(controller: controller!.presentedViewController!) : controller
+    }
+    
     @available(iOS 13.0, tvOS 13, *)
     func lvcdGetFirstActiveWindowScene() -> UIWindowScene? {
         let activeScenes = UIApplication.shared.connectedScenes.filter({$0.activationState == UIScene.ActivationState.foregroundActive && $0 is UIWindowScene})
         return (activeScenes.count > 0 ? activeScenes : UIApplication.shared.connectedScenes).first(where: {$0 is UIWindowScene}) as? UIWindowScene
     }
-}
-
-fileprivate extension Notification.Name {
-    static let lvcdCheckForMemoryLeak = Notification.Name("lvcdCheckForMemoryLeak")
 }
