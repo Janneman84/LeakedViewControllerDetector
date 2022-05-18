@@ -215,7 +215,8 @@ This is a sneaky one. If your ViewController is inside a NavigationController an
 ``` swift
 override func viewDidDisappear(_ animated: Bool) {
     super.viewDidDisappear(animated)
-    navigationController?.presentationController?.delegate = self //or nil, doesn't matter
+    //it's tempting to do this, but don't
+    navigationController?.presentationController?.delegate = nil
 }
 ```
 So present a NavigationController with a ViewController with this code. Then close the NavigationController and you'll see a memory warning.
@@ -245,7 +246,7 @@ Using a SplitViewController on an iPhone does result in some perculiar behavior.
 Do you know other causes of leaks that aren't listed here? Please let me know in the Issues section so I can add them.
 
 ## How do I know what causes my View or ViewController to leak?
-This package only knows if a leak occurs but it doesn't know _why_: that's up to you to figure out. The list above should help you find the culprit. If you also get a deinit warning this probably means it has to do with a network call or some animation. In some cases you may get warnings of both ViewControllers and Views, concentrate on fixing the ViewController first then the View warnings will usually go away too. A good strategy is to keep undressing your View or ViewController (mainly `ViewDidLoad()`) until the leak stops occuring. Or completely undress it first then put everything back piece by piece, or something in the middle (binary search).    
+This package only knows if a leak occurs but it doesn't know _why_: that's up to you to figure out. The list above should help you find the culprit. If you also get a deinit warning this probably means it has to do with a network call or some animation. In some cases you may get warnings of both ViewControllers and Views, concentrate on fixing the ViewController first then any View warnings will usually go away too. A good strategy is to keep undressing your View or ViewController (mainly `ViewDidLoad()`) until the leak stops occuring. Or completely undress it first then put everything back piece by piece, or something in the middle (binary search).    
 
 ## Using deinit{}
 You can add `deinit{}` to any object to monitor if it deinits. A typical usage is `deinit{print("deinit \(self)")}`. Watch your console and see if the print shows up when the object is supposed to deinit. If you get a memory leak warning you may want to add this to the class to confirm that it actually leaked and/or a fix worked. 

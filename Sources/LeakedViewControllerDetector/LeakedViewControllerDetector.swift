@@ -126,7 +126,7 @@ fileprivate extension UIViewController {
     }
     
     @objc func lvcdShowDetailViewController(_ vc: UIViewController, sender: Any?) {
-        NotificationCenter.default.post(name: Self.lvcdCheckForSplitViewVCMemoryLeakNotification), object: self)
+        NotificationCenter.default.post(name: Self.lvcdCheckForSplitViewVCMemoryLeakNotification, object: self)
         NotificationCenter.default.post(name: Self.lvcdCheckForMemoryLeakNotification, object: nil)
         if vc.view.layer.sublayers?.first(where: {$0 as? LVCDSplitViewLayer != nil}) == nil {
             let mldLayer = LVCDSplitViewLayer()
@@ -186,7 +186,7 @@ fileprivate extension UIViewController {
 
             Self.checkForLeakedSubViewsIn(view: view, viewController: self)
             
-            let delay = LeakedViewControllerDetector.delay*10
+            let delay = LeakedViewControllerDetector.delay
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 
                 //once a leak was detected it adds a special layer to the root view to allow to detect if it deinits, if somehow already present no need to proceed
