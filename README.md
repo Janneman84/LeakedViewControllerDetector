@@ -13,11 +13,11 @@ LeakedViewControllerDetector helps you find leaked Views and ViewControllers in 
 
 _An alert pops up when a leak is detected:_
 
-<img width="280" alt="alert1" src="https://user-images.githubusercontent.com/9085167/170822013-18c5a360-a5a4-42cf-92e5-fda391691346.jpg">
+<img width="280" alt="alert1" src="https://user-images.githubusercontent.com/9085167/170823721-b62c378d-ea68-40c2-9056-e651c5264141.jpg">
 
 _Another alert pops up if the leak resolves itself:_
 
-<img width="280" alt="alert2" src="https://user-images.githubusercontent.com/9085167/170822113-684983d4-bfed-4a65-afd9-3f8259020a33.jpg">
+<img width="280" alt="alert2" src="https://user-images.githubusercontent.com/9085167/170823736-4485dc36-53b1-49b1-a917-ba711669de54.jpg">
 
 ## Quickstart
 First install this package through SPM using the Github url `https://github.com/Janneman84/LeakedViewControllerDetector`. I suggest to use the main branch. Make sure the library is linked to the target: 
