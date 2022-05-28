@@ -44,9 +44,7 @@ public extension UIView {
     Before calling this make sure you have set LeakedViewControllerDetector.onDetect(){}, preferably in AppDelegate's application(_:didFinishLaunchingWithOptions:).
     
     Only use this method if the view is supposed to deinit shortly after it is removed from the view tree, or else it may trigger false warnings.
-     
      */
-    
     func removeFromSuperviewDetectLeaks() {
                
         removeFromSuperview()
@@ -85,7 +83,6 @@ fileprivate extension UIViewController {
         let originalSdvcMethod = class_getInstanceMethod(UISplitViewController.self, #selector(showDetailViewController(_:sender:)))
         let swizzledSdvcMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdShowDetailViewController(_:sender:)))
         method_exchangeImplementations(originalSdvcMethod!, swizzledSdvcMethod!)
-      
     }()
     
     static let lvcdIgnoredViewControllers = ["_UIAlertControllerTextFieldViewController",
@@ -145,52 +142,63 @@ fileprivate extension UIViewController {
         let delay = LeakedViewControllerDetector.delay
         let checkVC = viewController != nil
         
-        view.iterateSubViews() { subview in
-            if !checkVC || subview.viewController == viewController {
+        view.iterateTopSubViews(viewController: viewController) { subview in
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak viewController, weak subview] in
-                    if (!checkVC || viewController == nil), let subview = subview, subview.superview == nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak viewController, weak subview] in
+                if (!checkVC || viewController == nil), let subview = subview, subview.rootView.layer.sublayers?.first(where: {$0 as? LVCDLayer != nil}) == nil {
+                    let leakedView = subview.rootView
+                    let errorTitle = "VIEW STILL IN MEMORY"
+                    let errorMessage = leakedView.debugDescription
 
-                        let errorTitle = "VIEW STILL IN MEMORY"
-                        let errorMessage = subview.debugDescription
+                    let showAlert = LeakedViewControllerDetector.callback?(nil, leakedView, "\(errorTitle) \(errorMessage)")
+                    if showAlert ?? false {
+                        Self.lvcdShowWarningAlert(errorTitle: errorTitle, errorMessage: errorMessage, objectIdentifier: Int.init(bitPattern: ObjectIdentifier.init(leakedView)))
+                    }
 
-                        let showAlert = LeakedViewControllerDetector.callback?(nil, subview, "\(errorTitle) \(errorMessage)")
-                        if showAlert ?? false {
-                            Self.lvcdShowWarningAlert(errorTitle: errorTitle, errorMessage: errorMessage, objectIdentifier: Int.init(bitPattern: ObjectIdentifier.init(subview)))
-                        }
-
-                        if showAlert != nil {
-                            let mldLayer = LVCDLayer()
-                            mldLayer.memoryLeakDetectionDate = Date().timeIntervalSince1970 - delay
-                            mldLayer.errorMessage = errorMessage
-                            mldLayer.objectIdentifier = Int.init(bitPattern: ObjectIdentifier.init(subview))
-                            mldLayer.objectType = "VIEW"
-                            subview.layer.addSublayer(mldLayer)
-                        }
-
+                    if showAlert != nil {
+                        let mldLayer = LVCDLayer()
+                        mldLayer.memoryLeakDetectionDate = Date().timeIntervalSince1970 - delay
+                        mldLayer.errorMessage = errorMessage
+                        mldLayer.objectIdentifier = Int.init(bitPattern: ObjectIdentifier.init(leakedView))
+                        mldLayer.objectType = "VIEW"
+                        leakedView.layer.addSublayer(mldLayer)
                     }
                 }
             }
         }
     }
     
-    
+    var lvcdRootParentViewController: UIViewController {
+        parent?.lvcdRootParentViewController ?? self
+    }
+
     @objc private func lvcdCheckForMemoryLeak() {
         let objectIdentifier = ObjectIdentifier.init(self)
         
         //in some cases lvcdCheckForMemoryLeakNotification may be called multiple times at once, this guard prevents double checking
         guard !Self.lvcdMemoryCheckQueue.contains(objectIdentifier) else { return }
         Self.lvcdMemoryCheckQueue.insert(objectIdentifier)
-        
+          
         DispatchQueue.main.async { [self] in
+            Self.lvcdMemoryCheckQueue.remove(objectIdentifier)
+            let rootParentVC = lvcdRootParentViewController
+            guard rootParentVC.presentedViewController == nil,
+                  (!self.isViewLoaded || rootParentVC.view.window == nil),
+                  //once a leak was detected it adds a special layer to the root view to allow to detect if it deinits, if somehow already present no need to proceed
+                  rootParentVC.view.layer.sublayers?.first(where: {$0 as? LVCDLayer != nil || $0 as? LVCDSplitViewLayer != nil}) == nil
+            else { return }
+
+            if let svc = self as? UISplitViewController {
+                NotificationCenter.default.post(name: Self.lvcdCheckForSplitViewVCMemoryLeakNotification, object: svc)
+            }
 
             Self.checkForLeakedSubViewsIn(view: view, viewController: self)
             
             let delay = LeakedViewControllerDetector.delay
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 
-                //once a leak was detected it adds a special layer to the root view to allow to detect if it deinits, if somehow already present no need to proceed
-                guard let self = self, self.view.layer.sublayers?.first(where: {$0 as? LVCDLayer != nil || $0 as? LVCDSplitViewLayer != nil}) == nil else { return }
+                //if self is nil it deinitted, so no memory leak
+                guard let self = self else { return }
                 
                 //these conditions constitute a 'limbo' ViewController, i.e. a memory leak:
                 if (!self.isViewLoaded || self.view.window == nil) && self.parent == nil && self.presentedViewController == nil {
@@ -227,7 +235,6 @@ fileprivate extension UIViewController {
                     }
                 }
             }
-            Self.lvcdMemoryCheckQueue.remove(objectIdentifier)
         }
     }
     
@@ -255,44 +262,34 @@ fileprivate extension UIViewController {
                 LeakedViewControllerDetector.warningWindow = nil
             }
         })
-        lvcdShowWarningAlert(alert: alert, objectIdentifier: objectIdentifier)
+        lvcdShowWarningAlert(alert)
     }
     
-    class func lvcdShowWarningAlert(alert: UIAlertController, objectIdentifier: Int) {
+    class func lvcdShowWarningAlert(_ alert: UIAlertController?) {
+        guard let alert = alert else { return }
         if let warningWindow = LeakedViewControllerDetector.warningWindow {
-            if let topViewController = UIApplication.lvcdTopViewController(controller: warningWindow.rootViewController) {
-                if let alertController = topViewController as? LVCDAlertController, alertController.view.tag == objectIdentifier {
-                    alertController.dismiss(animated: false) {
-                        UIApplication.lvcdTopViewController(controller: warningWindow.rootViewController)?.present(alert, animated: true) {
-                            if let alert = lvcdAlertQueue.popLast() {
-                                lvcdShowWarningAlert(alert: alert, objectIdentifier: -1)
-                            }
-                        }
-                    }
+            
+            if let tagAlertController = UIApplication.lvcdFindViewControllerWithTag(controller: warningWindow.rootViewController, tag: alert.view.tag) as? UIAlertController, !tagAlertController.isBeingDismissed {
+                tagAlertController.title = alert.title
+                tagAlertController.message = alert.message
+            }
+            else if let topViewController = UIApplication.lvcdTopViewController(controller: warningWindow.rootViewController) {
+                if topViewController.isBeingPresented || topViewController.isBeingDismissed {
+                    lvcdAlertQueue.insert(alert, at: 0)
                 } else {
-                    if topViewController.isBeingPresented {
-                        lvcdAlertQueue.insert(alert, at: 0)
-                    } else {
-                        topViewController.present(alert, animated: lvcdAlertQueue.count < 2) {
-                            if let alert = lvcdAlertQueue.popLast() {
-                                lvcdShowWarningAlert(alert: alert, objectIdentifier: -1)
-                            }
-                        }
+                    topViewController.present(alert, animated: lvcdAlertQueue.count < 2) {
+                        lvcdShowWarningAlert(lvcdAlertQueue.popLast())
                     }
                 }
             } else {
-                #if DEBUG
-                fatalError("No ViewController found to present warning alert dialog on.")
-                #endif
+                assertionFailure("No ViewController found to present warning alert dialog on.")
             }
         } else {
             if #available(iOS 13, tvOS 13, *) {
-                if let windowScene = UIApplication.shared.lvcdGetFirstActiveWindowScene() {
+                if let windowScene = UIApplication.shared.lvcdFirstActiveWindowScene {
                     LeakedViewControllerDetector.warningWindow = UIWindow.init(windowScene: windowScene)
                 } else {
-                    #if DEBUG
-                    fatalError("No WindowScene found to present warning alert dialog on.")
-                    #endif
+                    assertionFailure("No WindowScene found to present warning alert dialog on.")
                 }
             } else {
                 LeakedViewControllerDetector.warningWindow = UIWindow.init(frame: UIScreen.main.bounds)
@@ -307,9 +304,7 @@ fileprivate extension UIViewController {
                     warningWindow.backgroundColor = .systemPink.withAlphaComponent(0.25)
                 }
                 warningWindow.rootViewController?.present(alert, animated: true) {
-                    if let alert = lvcdAlertQueue.popLast() {
-                        lvcdShowWarningAlert(alert: alert, objectIdentifier: -1)
-                    }
+                    lvcdShowWarningAlert(lvcdAlertQueue.popLast())
                 }
             }
         }
@@ -361,6 +356,11 @@ fileprivate extension UIViewController {
                     NotificationCenter.default.removeObserver(viewController!, name: UIViewController.lvcdCheckForMemoryLeakNotification, object: nil)
                     NotificationCenter.default.addObserver(viewController!, selector: #selector(lvcdCheckForMemoryLeak), name: UIViewController.lvcdCheckForMemoryLeakNotification, object: nil)
                 }
+                DispatchQueue.main.asyncAfter(deadline: .now() + LeakedViewControllerDetector.delay) { [weak splitViewController, weak viewController] in
+                    if splitViewController == nil {
+                        viewController?.lvcdCheckForMemoryLeak()
+                    }
+                }
             }
         }
     }
@@ -377,17 +377,27 @@ fileprivate class LVCDLayer: CALayer {
 }
 
 fileprivate extension UIView {
-    func iterateSubViews(onViewFound: (UIView)->(Void)) {
-        onViewFound(self)
+    func iterateTopSubViews(viewController: UIViewController?, onViewFound: (UIView)->(Void)) {
+        var hasSubview = false
         for subview in subviews {
-            subview.iterateSubViews(onViewFound: onViewFound)
+            if viewController == nil || subview.viewController == viewController {
+                subview.iterateTopSubViews(viewController: viewController, onViewFound: onViewFound)
+                hasSubview = true
+            }
         }
+        if !hasSubview {
+            onViewFound(self)
+        }
+    }
+    
+    var rootView: UIView {
+        superview?.rootView ?? self
     }
 }
 
 fileprivate extension UIResponder {
     var viewController: UIViewController? {
-        return next as? UIViewController ?? next?.viewController
+        next as? UIViewController ?? next?.viewController
     }
 }
 
@@ -395,15 +405,13 @@ fileprivate extension UIApplication {
 
     ///get a window, preferably once that is in foreground (active) in case you have multiple windows on iPad
     var lvcdActiveMainKeyWindow: UIWindow? {
-        get {
-            if #available(iOS 13, tvOS 13, *) {
-                let activeScenes = connectedScenes.filter({$0.activationState == UIScene.ActivationState.foregroundActive})
-                return (activeScenes.count > 0 ? activeScenes : connectedScenes)
-                    .flatMap {  ($0 as? UIWindowScene)?.windows ?? [] }
-                    .first { $0.isKeyWindow }
-            } else {
-                return keyWindow
-            }
+        if #available(iOS 13, tvOS 13, *) {
+            let activeScenes = connectedScenes.filter({$0.activationState == UIScene.ActivationState.foregroundActive})
+            return (activeScenes.count > 0 ? activeScenes : connectedScenes)
+                .flatMap {  ($0 as? UIWindowScene)?.windows ?? [] }
+                .first { $0.isKeyWindow }
+        } else {
+            return keyWindow
         }
     }
     
@@ -411,9 +419,14 @@ fileprivate extension UIApplication {
         return controller?.presentedViewController != nil ? lvcdTopViewController(controller: controller!.presentedViewController!) : controller
     }
     
+    class func lvcdFindViewControllerWithTag(controller: UIViewController? = UIApplication.shared.lvcdActiveMainKeyWindow?.rootViewController, tag: Int) -> UIViewController? {
+        return controller == nil ? nil : (controller!.view.tag == tag ? controller! : lvcdFindViewControllerWithTag(controller: controller!.presentedViewController, tag: tag))
+    }
+    
     @available(iOS 13.0, tvOS 13, *)
-    func lvcdGetFirstActiveWindowScene() -> UIWindowScene? {
+    var lvcdFirstActiveWindowScene: UIWindowScene? {
         let activeScenes = UIApplication.shared.connectedScenes.filter({$0.activationState == UIScene.ActivationState.foregroundActive && $0 is UIWindowScene})
         return (activeScenes.count > 0 ? activeScenes : UIApplication.shared.connectedScenes).first(where: {$0 is UIWindowScene}) as? UIWindowScene
     }
+    
 }

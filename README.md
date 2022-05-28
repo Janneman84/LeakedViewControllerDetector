@@ -14,8 +14,8 @@ LeakedViewControllerDetector helps you find leaked Views and ViewControllers in 
 _An alert pops up when a leak is detected:_
 
 <img width="280" alt="alert1" src="https://user-images.githubusercontent.com/9085167/170823721-b62c378d-ea68-40c2-9056-e651c5264141.jpg">
-
-_Another alert pops up if the leak resolves itself:_
+ 
+_The alert updates if the leak resolves itself:_
 
 <img width="280" alt="alert2" src="https://user-images.githubusercontent.com/9085167/170823736-4485dc36-53b1-49b1-a917-ba711669de54.jpg">
 
@@ -27,7 +27,7 @@ First install this package through SPM using the Github url `https://github.com/
 Or you can just copy/paste the `LeakedViewControllerDetector.swift` file to your project, which is not recommended since you won't receive updates this way.
 
 
-Next add import to `AppDelegate`:
+Now if you used SPM add import to `AppDelegate`:
 ``` swift
 import LeakedViewControllerDetector
 ```
@@ -48,7 +48,7 @@ As you can see the example uses different implementations for debug and release 
 
 Most leak detection works without changing your code. However you do need to manually replace View's `removeFromSuperview()` with `removeFromSuperviewDetectLeaks()` every time you want to remove a view and make sure it gets deinnited:
 ``` swift
-//once view is removed it will warn you if it (or any of its subviews) hasn't deinnnited: 
+//once the view is removed it will warn you if it (or any of its subviews) hasn't deinnited: 
 someView.removeFromSuperviewDetectLeaks()
 ```
 Of course only use this if the View is _supposed_ to deinit after it left the view tree, else you might end up with false warnings.
@@ -155,7 +155,7 @@ override func viewDidDisappear(_ animated: Bool) {
     }
 }
 ```
-Of course there is a bit more to it than that to catch all the edge scenarios. Feel free to look at the source code, it's pretty small. Unless you're doing fancy things this approach is surprisingly effective.
+Of course there is a bit more to it than that to catch all the edge scenarios. Leaked Views are detected in a similar fashion. Feel free to look at the source code, it's pretty small. Unless you're doing fancy things this approach is surprisingly effective.
 
 ## Common causes of leaked Views/ViewControllers
 ### 1. Referencing self in callbacks
@@ -255,13 +255,14 @@ You can add `deinit{}` to any object to monitor if it deinits. A typical usage i
 You can use Xcode's instruments to find memory leaks. However these can be complicated to use and only works if you are specifically searching for leaks. The advantage of this package is that it always works and you don't have to keep it in mind. Also it works when your users are using it so you know when a memory leak occurs in the wild. Note that this package only detects leaked ViewControllers and its Views and not other objects like the instruments can. ViewControllers tend to be the culprit of most leaks though so it's a good start.
 
 ## Performance
-Performance shouldn't be an issue for most apps. If you notice issues you may choose to only check for leaks in debug builds. Also be sure to let me know in the Issues section. I am working on the efficiency of the code so expect future updates to work even faster.
+Performance shouldn't be an issue for most apps because the code is well optimized. If you're concerned you may choose to just check for leaks in debug builds. If you're experiencing performance issues or any other issues make sure to let me know in the Issues section.
+
+## Why wasn't this package created 10 years ago?
+I wish it was, would have saved me lots of head aches... Now UIKit is gradually being replaced with SwiftUI making this package obsolete :(. Technically it doesn't do anything that wasn't possible 10 years ago, so it's a bit late to the party I know. Better late than never!
 
 ## Disclaimer
-This package may produce false or positives or false negatives in certain situations. It is not guaranteed to catch every memory leak and it only detects leaked ViewControllers and its Views, not other object. Please go to the Issues section if you're experiencing trouble. This package makes use of method swizzling of the following methods of `UIViewController`: `viewDidAppear()`, `viewDidDisappear()` and `removeFromParent()`.
-
+This package may produce false or positives or false negatives in certain situations. It is not guaranteed to catch every memory leak and it only detects leaked ViewControllers and its Views, not other object. Please go to the Issues section if you're experiencing trouble. This package makes use of method swizzling of the following methods: `UIViewController`s `viewDidAppear()`, `viewDidDisappear()`, `removeFromParent()` and `UISplitViewController`s `showDetailViewController()`.
 
 ## License
 
 MIT
-
