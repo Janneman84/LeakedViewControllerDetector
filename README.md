@@ -13,16 +13,16 @@ LeakedViewControllerDetector helps you find leaked Views and ViewControllers in 
 
 _An alert pops up when a leak is detected:_
 
-![lvcd_alert1](https://user-images.githubusercontent.com/9085167/163881885-1e087286-3f91-41b9-8a76-0bfab7815840.jpg)
- 
+<img width="280" alt="alert1" src="https://user-images.githubusercontent.com/9085167/170822013-18c5a360-a5a4-42cf-92e5-fda391691346.jpg">
+
 _Another alert pops up if the leak resolves itself:_
 
-![lvcd_alert2](https://user-images.githubusercontent.com/9085167/163881927-740cb4f8-9541-4b32-a0dc-6ab421f4fb79.jpg)
+<img width="280" alt="alert2" src="https://user-images.githubusercontent.com/9085167/170822113-684983d4-bfed-4a65-afd9-3f8259020a33.jpg">
 
 ## Quickstart
 First install this package through SPM using the Github url `https://github.com/Janneman84/LeakedViewControllerDetector`. I suggest to use the main branch. Make sure the library is linked to the target: 
 
-![lvcd_librarylink](https://user-images.githubusercontent.com/9085167/163882303-63abc092-fff0-46dd-9d0d-4f22a18cf7ae.png)
+<img width="653" alt="librarylink" src="https://user-images.githubusercontent.com/9085167/170822025-40ab8fe1-36a3-4269-8de7-09f97655c183.png">
 
 Or you can just copy/paste the `LeakedViewControllerDetector.swift` file to your project, which is not recommended since you won't receive updates this way.
 
