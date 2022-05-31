@@ -3,11 +3,13 @@
 
 ### _Find leaked Views and ViewControllers without even looking for them!_
 
-LeakedViewControllerDetector helps you find leaked Views and ViewControllers in your iOS or tvOS UIKit app. It's easy to accidentally create a retain cycle causing a ViewController (or View) to stay in memory. These memory leaks often cause weird issues in your app. This package warns you as soon as this occurs, helping you to track down the cause of the memory leak and improve the stability of your app. 
+LeakedViewControllerDetector helps you find leaked Views and ViewControllers in your iOS or tvOS UIKit app. It's easy to accidentally create a retain cycle causing a ViewController (or View) to stay in memory. These memory leaks often cause weird issues in your app. This package warns you as soon as this occurs, helping you to track down the cause of the memory leak and improve the stability of your app. It's a great help for every UIKit app!
 ## Features
 
-- Warns you instantly whenever a ViewController in your app closes but it (or any of its Views) don't deinit
-- Shows alert dialog (debug) or you can log a warning to e.g. Crashlytics (release) when this happens
+- Detects whenever a ViewController in your app closes but it (or any of its Views) don't deinit
+- Instantly shows a warning alert dialog when a leak is detected (debug builds)
+- Log warning messages to e.g. Crashlytics, so you know when a leak occurs in the wild
+- Yes it is fast en efficient enough to be used in release builds
 - Easy installation: set and forget
 - Little to no changes to your code required
 
@@ -266,3 +268,6 @@ This package may produce false or positives or false negatives in certain situat
 ## License
 
 MIT
+
+## Testimonials
+Has this package helped you find any leaks? Please leave a message in the testimonials thread in the Issues section!
