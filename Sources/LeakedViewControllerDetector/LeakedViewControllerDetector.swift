@@ -143,7 +143,7 @@ fileprivate extension UIViewController {
         let checkVC = viewController != nil
         
         view.iterateTopSubViews(viewController: viewController) { subview in
-
+            let subview = subview //seems redundant but prevents error in older Swift versions
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak viewController, weak subview] in
                 if (!checkVC || viewController == nil), let subview = subview, subview.rootView.layer.sublayers?.first(where: {$0 as? LVCDLayer != nil}) == nil {
                     let leakedView = subview.rootView
@@ -301,7 +301,7 @@ fileprivate extension UIViewController {
                 warningWindow.makeKeyAndVisible()
                 warningWindow.backgroundColor = .clear
                 UIView.animate(withDuration: 0.25) {
-                    warningWindow.backgroundColor = .systemPink.withAlphaComponent(0.25)
+                    warningWindow.backgroundColor = UIColor.systemPink.withAlphaComponent(0.25)
                 }
                 warningWindow.rootViewController?.present(alert, animated: true) {
                     lvcdShowWarningAlert(lvcdAlertQueue.popLast())
