@@ -81,9 +81,15 @@ someView.removeFromSuperviewDetectLeaks()
 Of course only use this if the View is _supposed_ to deinit after it is removed, else you might end up with false warnings.
 
 ### Review your code
-The rest of your code needs to comply to two trivial things. First, make sure that you always call `super` if you override `viewDidAppear()` and/or `viewDidDisappear()` in your ViewControllers. This is common practice so you probably already did this anyway, but it is essential that you do so now:
+The rest of your code needs to comply to two trivial things. First, make sure that you always call `super` if you override `viewDidLoad()`, `viewDidAppear()` and/or `viewDidDisappear()` in your ViewControllers. This is common practice so you probably already did this anyway, but it is essential that you do so now:
 
 ``` swift
+
+override func viewDidLoad() {
+    super.viewDidLoad() //don't forget this!
+    ...
+}
+
 override func viewDidAppear(_ animated: Bool) {
     super.viewDidAppear(animated) //don't forget this!
     ...
