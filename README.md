@@ -20,7 +20,13 @@ Remember having to deal with weird issues in your iOS or tvOS app, that turned o
 - Little to no changes to your code required
 - Fast and efficient
 
-_An alert with screenshot pops up when a leaked ViewController is detected. The alert updates if the leak resolves itself:_
+_An alert with a screenshot pops up whenever a ViewController closes but doesn't deinit:_
+
+![ezgif com-optimize-4](https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/8646cfd9-9ebb-4b1f-860c-2477ce943627)
+<!-- ![ezgif com-optimize-3](https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/ba4ac301-ad45-48c6-9d0a-8cb463fd5cb1) -->
+<!-- ![ezgif com-optimize](https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/d666a5ae-3308-4231-bcc0-9bc0ea65ba70) -->
+
+_The alert updates if the leak resolves itself:_
 
 <img width="650" alt="alert1" src="https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/1ef5b541-df19-45b1-994f-6107ec72b8c0">
 <!-- <img width="650" alt="alert1" src="https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/fb2061d1-1f34-4b92-bb1c-d48dcc325dcc"> -->
