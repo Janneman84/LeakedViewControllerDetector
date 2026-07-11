@@ -222,7 +222,11 @@ private extension UIView {
         // stick to two levels for now, seems to work best without constraint warnings
         // level 3 is necessary for getting UIAlert radius
         iterateSubviews(maxLevel: 3) { subview, level in
-            if !(subview is UINavigationBar || subview is UICollectionViewCell || subview is UITabBar || level > 2) {
+            if !(subview is UINavigationBar ||
+                 subview is UICollectionViewCell ||
+                 subview is UITabBar ||
+                 subview is UIToolbar ||
+                 level > 2) {
                 wasTARMICS[ObjectIdentifier(subview)] = subview.translatesAutoresizingMaskIntoConstraints
                 subview.translatesAutoresizingMaskIntoConstraints = true
             }
@@ -265,7 +269,7 @@ private extension UIView {
         guard unclippedFrame.size.width > 0, unclippedFrame.size.height > 0 else { return nil }
 
         let container2 = UIView(frame: .init(origin: .zero, size: unclippedFrame.size))
-        container2.backgroundColor = UIColor.white.withAlphaComponent(0.03)
+        container2.backgroundColor = UIColor.white.withAlphaComponent(0.1)
         container2.addSubview(container)
         container.frame = .init(
             x: 0 - unclippedFrame.minX,
@@ -317,7 +321,12 @@ private extension UIView {
         alpha = wasAlpha
         isHidden = wasHidden
         iterateSubviews { subview, level in
-            if !(subview is UINavigationBar || subview is UICollectionViewCell || subview is UITabBar || level > 2) {
+            if !(
+                subview is UINavigationBar ||
+                subview is UICollectionViewCell ||
+                subview is UITabBar ||
+                subview is UIToolbar ||
+                level > 2) {
                 subview.translatesAutoresizingMaskIntoConstraints = wasTARMICS[ObjectIdentifier(subview)] ?? subview
                     .translatesAutoresizingMaskIntoConstraints
             }
@@ -674,36 +683,31 @@ private extension UIViewController {
         alert.preferredAction = alert.actions.first!
 
         if let screenshot {
-            let maxWidth: CGFloat = 240 - (iosOnMac ? 12 : 0) // alert content width hard coded for now
-
-            // create and position imageview and set checkboard background and screenshot
-            let imageView = UIImageView(frame: CGRect(
-                x: (maxWidth - min(maxWidth, screenshot.size.width)) * 0.5,
-                y: 0,
-                width: min(maxWidth, screenshot.size.width),
-                height: min(screenshot.size.height, maxWidth * (screenshot.size.height / screenshot.size.width))
-            ))
-            imageView.contentMode = .scaleAspectFit
-            imageView.image = screenshot
-            imageView.clipsToBounds = false
-            imageView.layer.shadowColor = UIColor.black.cgColor
-            imageView.layer.shadowOpacity = 0.15
-            imageView.layer.shadowOffset = .init(width: 0, height: 0.5)
-            imageView.layer.shadowRadius = 2
-            imageView.transform = CGAffineTransform(translationX: iosOnMac ? -14 : 0, y: 2)
-
-            // abuse textfield to add the imageview to the alert
-            alert.addTextField { tf in
-                tf.isUserInteractionEnabled = false
-                if let superDuper = tf.superview?.superview {
-                    tf.translatesAutoresizingMaskIntoConstraints = false
-                    let height = superDuper.heightAnchor.constraint(equalToConstant: imageView.frame.height + 6)
-                    height.priority = .defaultHigh
-                    for view in superDuper.subviews {
-                        view.isHidden = true
+            let maxWidth: CGFloat = 240-(iosOnMac ? 12 : 0) //alert content width hard coded for now
+            
+            let imgAction = UIAlertAction(title: "", style: .default, handler: nil)
+            imgAction.isEnabled = false
+            imgAction.setValue(screenshot.withRenderingMode(.alwaysOriginal), forKey: "image")
+            alert.addAction(imgAction)
+            var bgFound = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1/30.0) {
+                alert.view.iterateSubviews() { view, level  in
+                    // Try to get rid of ugly circle background, no big deal if this fails
+                    if type(of: view).description() == "_UIAlertControllerFilledBackgroundView" {
+                        if !bgFound {
+                            view.alpha = 0
+                            bgFound = true
+                        }
                     }
-                    superDuper.addConstraint(height)
-                    superDuper.addSubview(imageView)
+                    if let imageView = view as? UIImageView {
+                        imageView.layer.shadowColor = UIColor.black.cgColor
+                        imageView.layer.shadowOpacity = 0.15
+                        imageView.layer.shadowOffset = .init(width: 0, height: 0.5)
+                        imageView.layer.shadowRadius = 2
+                        view.frame = .init(x: (view.superview!.frame.width - view.frame.width) * 0.5, y: 6, width: view.frame.width, height: view.frame.height)
+                        
+                    }
+                    return true
                 }
             }
         }
