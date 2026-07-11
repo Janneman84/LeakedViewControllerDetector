@@ -1,11 +1,135 @@
+# macOS
 .DS_Store
-/.build
-/Packages
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+*.xcodeproj/project.xcworkspace/*
+!*.xcodeproj/project.xcworkspace/contents.xcworkspacedata
 /*.xcodeproj
 xcuserdata/
 DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+# Swift Package Manager
+/.build
+/Packages
+Package.resolved
+*.swiftpm
 .swiftpm/config/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
-.netrc
-.derivedData
+.swiftpm/xcode/package.xcworkspace/xcshareddata/
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
 .dependencies
+.derivedData
+
+# Build artifacts
+build/
+*.build/
+*.dSYM.zip
+*.dSYM
+
+# Swift Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Code coverage
+*.gcno
+*.gcda
+*.profdata
+*.profraw
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# CocoaPods (if used)
+Pods/
+*.podspec
+
+# Carthage (if used)
+Carthage/Build/
+Carthage/Checkouts/
+
+# Accio dependency management
+Dependencies/
+.accio/
+
+# Firebase
+GoogleService-Info.plist
+google-services.json
+
+# Secrets and API keys
+.env
+.env.local
+.env.*.local
+secrets.json
+config.json
+*.pem
+*.p12
+*.mobileprovision
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Network security
+.netrc
+
+# Documentation build
+docs/build/
+.jazzy/
+
+# Testing
+.coverage
+coverage/
+test_output/
+TestResults/
+
+# Instruments
+*.trace
+
+# App packaging
+*.ipa
+*.app
+*.dSYM
+
+# Simulator logs
+simulator_logs/
+
+# Swift format
+.swift-format
+
+# Mint
+.mint/

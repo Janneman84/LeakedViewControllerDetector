@@ -1,10 +1,14 @@
 # LeakedViewControllerDetector for UIKit (iOS/tvOS)
 
-[![UIKit only](https://img.shields.io/badge/UIKit-red)](https://swiftpackageindex.com/Janneman84/LeakedViewControllerDetector)
-[![Platform compatibility](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FJanneman84%2FLeakedViewControllerDetector%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/Janneman84/LeakedViewControllerDetector)
-[![Catalyst compatible](https://img.shields.io/badge/iOSOnMac_|_Catalyst-critical)](https://swiftpackageindex.com/Janneman84/LeakedViewControllerDetector)
-[![Swift compatibility](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FJanneman84%2FLeakedViewControllerDetector%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/Janneman84/LeakedViewControllerDetector)
+[![CI](https://github.com/matheus-gois/LeakedViewControllerDetector/workflows/CI/badge.svg)](https://github.com/matheus-gois/LeakedViewControllerDetector/actions)
+[![codecov](https://codecov.io/gh/maatheusgois-dd/LeakedViewControllerDetector/branch/main/graph/badge.svg)](https://codecov.io/gh/maatheusgois-dd/LeakedViewControllerDetector)
+[![Swift 6.0](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
+[![UIKit only](https://img.shields.io/badge/UIKit-red)](https://developer.apple.com/documentation/uikit)
+[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20tvOS-lightgrey.svg)](https://developer.apple.com/documentation/uikit)
+[![iOS 13.0+](https://img.shields.io/badge/iOS-13.0%2B-blue.svg)](https://developer.apple.com/ios/)
+[![tvOS 13.0+](https://img.shields.io/badge/tvOS-13.0%2B-blue.svg)](https://developer.apple.com/tvos/)
 [![Swift Package Manager compatible](https://img.shields.io/badge/spm-compatible-brightgreen.svg?style=flat)](https://swift.org/package-manager)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
 ### _Find leaked UIViews and UIViewControllers in real time in your UIKit app without even looking for them!_
@@ -13,397 +17,463 @@ Remember having to deal with weird issues in your iOS or tvOS app, that turned o
 
 ## Features
 
-- Detects whenever a UIView or UIViewController in your app closes but it (or any of its subviews) don't deinit
-- Instantly shows a warning alert dialog as soon as a leak is detected (in debug builds)
-- Works great in release builds too! You can log leak warnings to e.g. Crashlytics.
-- Easy installation: set and forget
-- Little to no changes to your code required
-- Fast and efficient
+- 🔍 **Real-time Detection**: Detects whenever a UIView or UIViewController in your app closes but doesn't deinit
+- ⚡ **Instant Alerts**: Shows a warning alert dialog as soon as a leak is detected (in debug builds)
+- 📊 **Production Ready**: Works great in release builds too! Log leak warnings to Crashlytics or your analytics service
+- 🚀 **Easy Setup**: Set and forget installation with minimal code changes
+- ⚡ **Performance Optimized**: Fast and efficient with minimal overhead
+- 📱 **Platform Support**: Works on iOS 13.0+ and tvOS 13.0+
+- 🎯 **Swift 6.0**: Built with the latest Swift features and concurrency support
 
-_An alert with a screenshot pops up whenever a ViewController closes but doesn't deinit:_
+## Installation
 
-![ezgif com-optimize-4](https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/8646cfd9-9ebb-4b1f-860c-2477ce943627)
-<!-- ![ezgif com-optimize-3](https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/ba4ac301-ad45-48c6-9d0a-8cb463fd5cb1) -->
-<!-- ![ezgif com-optimize](https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/d666a5ae-3308-4231-bcc0-9bc0ea65ba70) -->
+### Swift Package Manager
 
-_The alert updates if the leak resolves itself:_
+Add the following to your `Package.swift` file:
 
-<img width="650" alt="alert1" src="https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/1ef5b541-df19-45b1-994f-6107ec72b8c0">
-<!-- <img width="650" alt="alert1" src="https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/fb2061d1-1f34-4b92-bb1c-d48dcc325dcc"> -->
-<!-- <img width="650" alt="alert1" src="https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/57af87d6-e858-4ae6-886e-4d6dd5bea530"> -->
-<!-- <img width="650" alt="alert1" src="https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/af81ecfc-e607-47cb-bad6-1a0a6e2ca46d"> -->
-<!-- <img width="650" alt="alert1" src="https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/debcefa5-6649-4d4d-8721-6aa42f640e86"> -->
-<!-- <img width="700" alt="alert1" src="https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/7e60ace6-3144-4830-ae38-408182cc5218"> -->
+```swift
+dependencies: [
+    .package(url: "https://github.com/matheus-gois/LeakedViewControllerDetector.git", from: "1.0.0")
+]
+```
 
-_The detector also detects leaked Views:_
+Or add it through Xcode:
+1. File → Add Package Dependencies
+2. Enter: `https://github.com/matheus-gois/LeakedViewControllerDetector.git`
+3. Select your target and add the package
 
-<img width="271" alt="alert2" src="https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/8a53c16b-fa7e-462b-a817-e949e8417882">
-
-<br>
-<br>
-
-The alerts can be disabled so your users won't have to seen them.
-
-<!--_An alert pops up when a leak is detected:_-->
-<!---->
-<!--<img width="280" alt="alert1" src="https://user-images.githubusercontent.com/9085167/170823721-b62c378d-ea68-40c2-9056-e651c5264141.jpg">-->
-<!-- -->
-<!--_The alert updates if the leak resolves itself:_-->
-<!---->
-<!--<img width="280" alt="alert2" src="https://user-images.githubusercontent.com/9085167/170823736-4485dc36-53b1-49b1-a917-ba711669de54.jpg">-->
-
-## Setup and information
+## Quick Start
 
 <details>
-  <summary><b>Quickstart</b></summary>
+  <summary><b>Basic Setup (Recommended)</b></summary>
 
-You begin by installing this package through SPM using the Github url `https://github.com/Janneman84/LeakedViewControllerDetector`. I suggest to use the main branch. Make sure the library is linked to the target: 
-
-<img width="653" alt="librarylink" src="https://user-images.githubusercontent.com/9085167/170822025-40ab8fe1-36a3-4269-8de7-09f97655c183.png">
-
-Or you can just copy/paste the `LeakedViewControllerDetector.swift` file to your project, which is not recommended since you won't receive updates this way.
-
-
-Now if you used SPM add import to `AppDelegate`:
-``` swift
+Add the import to your `AppDelegate`:
+```swift
 import LeakedViewControllerDetector
 ```
-Then add the following code to `application(_:didFinishLaunchingWithOptions:)` in the `AppDelegate` class:
-``` swift
+
+Add this code to `application(_:didFinishLaunchingWithOptions:)` in your `AppDelegate`:
+```swift
 LeakedViewControllerDetector.onDetect() { leakedViewController, leakedView, message in
     #if DEBUG
-    return true //show warning alert dialog
+    print(message)
+    return true // Show warning alert dialog
     #else
-    //here you can log warning message to a server, e.g. Crashlytics
-    return false //don't show warning to user
+    // Log warning message to your analytics service (e.g., Crashlytics)
+    // CrashlyticsLogger.log(message)
+    return false // Don't show warning to users
     #endif
 }
 ```
-That's it! The leak detector is now up and running. However to get the most out of this package I recommend you study the next two sections where I go into all the details.
+
+That's it! The leak detector is now running and will alert you of any memory leaks.
 </details>
+
+## Configuration
+
 <details>
-  <summary><b>Required code changes</b></summary>
+  <summary><b>Required Code Changes</b></summary>
 
-Most leak detection works without changing your code. However a few small changes might be still be necessary:
-    
-### Replace removeFromSuperview()
+Most leak detection works without changing your code. However, a few small changes might be necessary:
 
-You do need to manually replace View's `removeFromSuperview()` with `removeFromSuperviewDetectLeaks()` everytime you want to remove a view and make sure it and all its subviews get deinnited:
-``` swift
-//once the view is removed it will warn you if it (or any of its subviews) haven't deinnited: 
+### 1. Replace removeFromSuperview()
+
+Replace View's `removeFromSuperview()` with `removeFromSuperviewDetectLeaks()` when you want to ensure a view and its subviews deinitialize:
+
+```swift
+// This will warn you if the view or any of its subviews don't deinitialize
 someView.removeFromSuperviewDetectLeaks()
 ```
-Of course only use this if the View is _supposed_ to deinit after it is removed, else you might end up with false warnings.
 
-### Review your code
-The rest of your code needs to comply to two trivial things. First, make sure that you always call `super` if you override `viewDidLoad()`, `viewDidAppear()` and/or `viewDidDisappear()` in your ViewControllers. This is common practice so you probably already did this anyway, but it is essential that you do so now:
+**Note**: Only use this if the View is supposed to deinit after removal.
 
-``` swift
+### 2. Always Call Super Methods
 
+Ensure you always call `super` in these UIViewController methods:
+
+```swift
 override func viewDidLoad() {
-    super.viewDidLoad() //don't forget this!
-    ...
+    super.viewDidLoad() // Essential!
+    // Your code here
 }
 
 override func viewDidAppear(_ animated: Bool) {
-    super.viewDidAppear(animated) //don't forget this!
-    ...
+    super.viewDidAppear(animated) // Essential!
+    // Your code here
 }
 
 override func viewDidDisappear(_ animated: Bool) {
-    super.viewDidDisappear(animated) //don't forget this!
-    ...
+    super.viewDidDisappear(animated) // Essential!
+    // Your code here
 }
 ```
 
-Second, if you want to remove items from a UIViewController array, like in UINavigationController, UITabBarController or UIPageViewController, don't use `remove(at:)` but use `removeFromparent()` instead:
+### 3. Use removeFromParent() Instead of Array Removal
 
-``` swift
-//navigationController?.viewControllers.remove(at:3)
+When removing ViewControllers from container arrays, use `removeFromParent()`:
+
+```swift
+// ❌ Don't do this
+// navigationController?.viewControllers.remove(at: 3)
+
+// ✅ Do this instead
 navigationController?.viewControllers[3].removeFromParent()
 
-//tabBarController?.viewControllers?.remove(at:3)
+// ✅ Same for tab bar controllers
 tabBarController?.viewControllers?[3].removeFromParent()
 ```
-
-That's it! The leak detector is now fully operational. If your app is functioning correctly you won't notice anything. Now it's time to tweak the callback to your liking.
-
 </details>
+
 <details>
-  <summary><b>onDetect() callback implementation and examples</b></summary>
+  <summary><b>Advanced Configuration</b></summary>
 
-As you can see in the quickstart it is recommended to treat debug and release builds differently. If you're debugging it's nice to get a popup dialog warning you of an issue. However you don't want your users to see this, so you log instead. Let's walk through the arguments and return value of the callback.
+### Custom Detection Delay
 
-``` swift
-LeakedViewControllerDetector.onDetect(detectionDelay: 1.0) { leakedViewController, leakedView, message in
-    return true
-}
-```
-`detectionDelay` is the time in seconds a View or ViewController and its subviews get after it closes to deinit itself before it triggers a warning. If you get many deinit warnings you may want to increase this number. The default value of 1.0s should prevent most of them though. You may consider a tighter delay for debug builds.
-
-The callback supplies the following:
-- `leakedViewController`, note this is an optional. If a previously leaked VC deinits (resolves itself) this callback is triggered again but in that case both leakedViewController and leakedView will be nil.
-- `leakedView`, same as leakedViewController but for Views.
-- `message`, string that can be used to print to console or log to your server of choice
-
-The callback expects an optional Bool to be returned:
-- Return `true` to show an alert dialog with the warning message. Note: if you're using multiple windows on iPad the window that shows the alert isn't necessarily the window where the leak occurs.
-- Return `false` to not show an alert dialog, this is recommended for release builds
-- Return `nil` if you don't want the callback to trigger again if leakedViewController/leakedView deinits. This is typically used if you want to ignore warnings of certain classes or instances.
-
-### Ignore example
-If for some reason you want to ignore warnings of certain Views or ViewControllers, make sure you return `nil`:
-
-``` swift
-LeakedViewControllerDetector.onDetect() { leakedViewController, leakedView, message in
-    //return nil to ignore:
-    if let leakedViewController {
-        if leakedViewController is IgnoreThisViewController {return nil}
-        if type(of: leakedViewController).description() == "_IgnoreThisPrivateViewController" {return nil}
-        if leakedViewController.view.tag == -1 {return nil}
-    }
-    if let leakedView {
-        if leakedView is IgnoreThisView {return nil}
-        if type(of: leakedView).description() == "_IgnoreThisPrivateView" {return nil}
-        if leakedView.tag == -1 {return nil}
-    }
-    return true
-}
-```
-
-The package already ignores a few ViewControllers by itself, you can find these in `LeakedViewControllerDetector.ignoredViewControllerClassNames`, `LeakedViewControllerDetector.ignoredViewClassNames` and `LeakedViewControllerDetector.ignoredWindowClassNames`. You can add and remove from these arrays as you see fit. This way you can prevent them from triggering a warning in the first place.
-
-### Crashlytics example
-If you're using Crashlytics you can log the warning message like so:
-
-``` swift
-import FirebaseCrashlytics
-```
-
-``` swift
-let error = NSError(domain: Bundle.main.bundleIdentifier!,
-                      code: 8, //whatever number you fancy
-                  userInfo: [NSLocalizedDescriptionKey: message])
-Crashlytics.crashlytics().record(error: error)
-```
-
-### Full example
-When you tie everything together you'll end up with something like this:
 ```swift
-#if DEBUG
-let delay = 0.2
-#else
-let delay = 1.0
-#endif
-               
-LeakedViewControllerDetector.onDetect(detectionDelay: delay) { leakedViewController, leakedView, message in
-    //return nil to ignore warnings of certain Viewscontrollers/Views
-    if let leakedViewController {
-        // UIImagePickerController tends to leak for ~5 second when you close it
-        if leakedViewController is UIImagePickerController {return nil}
-        if leakedViewController is IgnoreThisViewController {return nil}
-        if type(of: leakedViewController).description() == "_IgnoreThisPrivateViewController" {return nil}
-        if leakedViewController.view.tag == -1 {return nil}
-    }
-    if let leakedView {
-        if leakedView is IgnoreThisView {return nil}
-        if type(of: leakedView).description() == "_IgnoreThisPrivateView" {return nil}
-        if leakedView.tag == -1 {return nil}
-    }
+LeakedViewControllerDetector.onDetect(detectionDelay: 2.0) { leakedViewController, leakedView, message in
+    // Custom delay of 2 seconds before considering something leaked
+    return true
+}
+```
 
+### Ignoring Specific Classes
+
+You can ignore warnings for specific classes by returning `nil`:
+
+```swift
+LeakedViewControllerDetector.onDetect() { leakedViewController, leakedView, message in
+    // Ignore specific ViewControllers
+    if let leakedViewController = leakedViewController {
+        if leakedViewController is UIImagePickerController { return nil }
+        if leakedViewController is SomeCustomViewController { return nil }
+        if type(of: leakedViewController).description().contains("Private") { return nil }
+    }
+    
+    // Ignore specific Views
+    if let leakedView = leakedView {
+        if leakedView is SomeCustomView { return nil }
+        if leakedView.tag == -1 { return nil }
+    }
+    
     #if DEBUG
-    print(message)
-    return true //show alert
+    return true
     #else
-    //log leak message to server:
-    let error = NSError(domain: Bundle.main.bundleIdentifier ?? "bundleIdentifier",
-                        code: 8,
-                        userInfo: [NSLocalizedDescriptionKey: message])
-    Crashlytics.crashlytics().record(error: error)
-    return false //don't show alert
+    return false
     #endif
 }
 ```
-Debug only example:
+
+### Global Ignore Lists
+
+You can also modify the global ignore lists:
+
+```swift
+// Add classes to ignore globally
+LeakedViewControllerDetector.ignoredViewControllerClassNames.append("MyCustomViewController")
+LeakedViewControllerDetector.ignoredViewClassNames.append("MyCustomView")
+LeakedViewControllerDetector.ignoredWindowClassNames.append("MyCustomWindow")
+```
+
+### Production Logging Example
+
 ```swift
 #if DEBUG
-LeakedViewControllerDetector.onDetect() { leakedViewController, leakedView, message in
-    //insert ignore code here
-    print(message)
-    return true //show alert
-}
+let detectionDelay: TimeInterval = 0.5 // Faster detection in debug
+#else
+let detectionDelay: TimeInterval = 2.0 // More lenient in production
 #endif
-```
-It's tempting to put the import line between DEBUG tags too. However you still need it if you're using `removeFromSuperviewDetectLeaks()` anywhere in your code. When the detection callback is not set calls to this method will just act as a regular `removeFromSuperview()`.
-</details>
-<details>
-  <summary><b>How does this package detect leaked ViewControllers?</b></summary>
-    
-In essence all it really does is this:
 
-``` swift
+LeakedViewControllerDetector.onDetect(detectionDelay: detectionDelay) { leakedViewController, leakedView, message in
+    #if DEBUG
+    print("🚨 Memory Leak Detected: \(message)")
+    return true // Show alert in debug
+    #else
+    // Log to your analytics service
+    Analytics.logError("MemoryLeak", parameters: ["message": message])
+    
+    // Or log to Crashlytics
+    let error = NSError(
+        domain: Bundle.main.bundleIdentifier ?? "MemoryLeak",
+        code: 1001,
+        userInfo: [NSLocalizedDescriptionKey: message]
+    )
+    Crashlytics.crashlytics().record(error: error)
+    
+    return false // Don't show alerts to users
+    #endif
+}
+```
+</details>
+
+## How It Works
+
+<details>
+  <summary><b>Detection Mechanism</b></summary>
+
+The detector works by monitoring the lifecycle of ViewControllers and Views:
+
+```swift
 override func viewDidDisappear(_ animated: Bool) {
     super.viewDidDisappear(animated)
-           
-    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+    
+    DispatchQueue.main.asyncAfter(deadline: .now() + detectionDelay) { [weak self] in
+        guard let self = self else { return } // If nil, properly deinitialized
         
-        //when self is nil the ViewController has deinnited, so no leak
-        guard let self = self else { return }
-        
-        //if all these properties are nil the ViewController is considered to have leaked
-        if self.view.window == nil && self.parent == nil && self.presentedViewController == nil && (view == nil || view.superview == nil) {
-            print("Leaked ViewController detected: \(self)")
+        // Check if ViewController should have been deallocated
+        if self.view.window == nil && 
+           self.parent == nil && 
+           self.presentedViewController == nil && 
+           (view == nil || view.superview == nil) {
+            // Leak detected!
         }
     }
 }
 ```
-Of course there is a bit more to it than that to catch all the edge scenarios. Leaked Views are detected in a similar fashion. Feel free to look at the source code, it's pretty small. Unless you're doing fancy things this approach is surprisingly effective.
+
+The actual implementation includes additional edge case handling and optimizations.
 </details>
+
+## Common Memory Leak Causes
+
 <details>
-  <summary><b>10 Common causes of leaked Views/ViewControllers</b></summary>
+  <summary><b>Top 10 Memory Leak Patterns</b></summary>
 
-### 1. Referencing self in callbacks
-Referencing `self` inside a callback is often the cause of a memory leak. This code will keep a ViewController, View, or any other object alive for 10 seconds: 
+### 1. Strong Reference Cycles in Closures
+```swift
+// ❌ Creates a retain cycle
+DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+    print(self.title) // Strong reference to self
+}
 
-``` swift
-DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
-    print(self)
+// ✅ Use weak self
+DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+    guard let self = self else { return }
+    print(self.title)
 }
 ```
 
-This will trigger a memory leak warning if you close the ViewController before the 10 seconds are over. After the 10 seconds you will see another warning telling you the ViewController has deinnited itself. This scenario is also typical for a slow network request that eventually finishes or times out.
+### 2. NotificationCenter Observers
+```swift
+// ❌ Creates a retain cycle
+NotificationCenter.default.addObserver(
+    forName: .someNotification,
+    object: nil,
+    queue: nil
+) { notification in
+    self.handleNotification() // Strong reference
+}
 
-These issues are easily fixed by using `[weak self]`, as you probably know:
-``` swift
-DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
-    guard let self = self else {return}
-    print(self)
+// ✅ Use weak self
+NotificationCenter.default.addObserver(
+    forName: .someNotification,
+    object: nil,
+    queue: nil
+) { [weak self] notification in
+    self?.handleNotification()
 }
 ```
 
-### 2. NotificationCenter observer callback
+### 3. Strong Delegate References
+```swift
+// ❌ Strong reference
+var delegate: MyDelegate?
 
-Don't forget to also use `[weak self]` when observing for notifications like this, or else the ViewController will stay in memory forever:
+// ✅ Weak reference
+weak var delegate: MyDelegate?
+```
 
-``` swift
-NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: "SomeNotification"), object: nil, queue: nil) { [weak self] notification in
-    print(self)
+### 4. Timer Retain Cycles
+```swift
+// ❌ Timer retains target strongly
+Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(update), userInfo: nil, repeats: true)
+
+// ✅ Use weak reference or invalidate in deinit
+private var timer: Timer?
+
+func startTimer() {
+    timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        self?.update()
+    }
+}
+
+deinit {
+    timer?.invalidate()
 }
 ```
 
-Or instead you can observe using a selector like this, which cannot cause a memory leak:
-``` swift
-NotificationCenter.default.addObserver(self, selector: #selector(someMethod), name: Notification.Name("SomeNotification"), object: nil)
+### 5. UIAlertController Action Cycles
+```swift
+// ❌ Alert retains itself
+let alert = UIAlertController(title: "Test", message: nil, preferredStyle: .alert)
+alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
+    print(alert.title) // Retain cycle
+})
+
+// ✅ Use unowned or weak
+alert.addAction(UIAlertAction(title: "OK", style: .default) { [unowned alert] _ in
+    print(alert.title)
+})
 ```
 
-### 3. Using non-weak delegates
-Make sure to always declare delegates as weak vars or else it's very likely to get a memory leak:
-``` swift
-weak var delegate: MyViewControllerDelegate?
-```
-
-### 4. ViewController PresentationController Delegate
-Sometimes you want to set the PresentationController delegate, for example if you want to implement `presentationControllerShouldDismiss()`. However if you set this delegate if your ViewController is a child of a parent like a NavigationController it won't trigger the delegate methods but will cause a permanent memory leak instead:
-``` swift
+### 6. Presentation Controller Delegate Issues
+```swift
+// ❌ Can cause leaks in child ViewControllers
 self.presentationController?.delegate = self
-```
 
-Instead it's best to just always use this:
-``` swift
+// ✅ Always set on the presented ViewController
 self.presentingViewController?.presentedViewController?.presentationController?.delegate = self
 ```
-This trick makes sure the delegate is always set to the parent, whatever it is.
 
-### 5. NavigationController PresentationController delegate
-This is a sneaky one. If your ViewController is inside a NavigationController and you set its presentationController delegate right after it closed it will keep itself and its children in memory forever:
-``` swift
-override func viewDidDisappear(_ animated: Bool) {
-    super.viewDidDisappear(animated)
-    //it's tempting to do this, but don't
-    navigationController?.presentationController?.delegate = nil
+### 7. Network Request Callbacks
+```swift
+// ❌ Network callback retains ViewController
+URLSession.shared.dataTask(with: url) { data, response, error in
+    DispatchQueue.main.async {
+        self.updateUI(with: data) // Strong reference
+    }
+}.resume()
+
+// ✅ Use weak self
+URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+    DispatchQueue.main.async {
+        self?.updateUI(with: data)
+    }
+}.resume()
+```
+
+### 8. Animation Completion Blocks
+```swift
+// ❌ Animation retains ViewController
+UIView.animate(withDuration: 1.0, animations: {
+    self.view.alpha = 0
+}) { _ in
+    self.dismiss(animated: true) // Strong reference
+}
+
+// ✅ Use weak self
+UIView.animate(withDuration: 1.0, animations: { [weak self] in
+    self?.view.alpha = 0
+}) { [weak self] _ in
+    self?.dismiss(animated: true)
 }
 ```
-So present a NavigationController with a ViewController with this code. Then close the NavigationController and you'll see a memory warning.
 
-### 6. UIAlertController action callback
-Sometimes you want to reference an alert inside one of its actions' callback. In that case make sure you use `unowned` or `weak` or the alert will linger in memory forever. You can use `unowned` if you're certain it won't be nil (which is the case here), it's basically the same as explicitly unwrapping `weak`:
-``` swift
-//since we're referencing alert inside the callbacks use unowned or weak or it will never deinit
-let alert = UIAlertController.init(title: "Retain test", message: nil, preferredStyle: .alert)
-alert.addAction(UIAlertAction.init(title: "Unowned", style: .default) { [unowned alert] action in
-    print(alert)
-})
-alert.addAction(UIAlertAction.init(title: "Weak", style: .default) { [weak alert] action in
-    print(alert!) //explicitly unwrapping weak alert works basically the same as using unowned
-})
-self.present(alert, animated: true)
+### 9. KVO Observers
+```swift
+// ❌ Forgetting to remove observers
+override func viewDidLoad() {
+    super.viewDidLoad()
+    someObject.addObserver(self, forKeyPath: "property", options: .new, context: nil)
+}
+
+// ✅ Always remove in deinit
+deinit {
+    someObject.removeObserver(self, forKeyPath: "property")
+}
 ```
 
-### 6. Hitting breakpoints or using Debug View Hierarchy
-There are some cases where hitting a breakpoint and/or using the view hierarchy debugger in an app may lead to (what appears to be) memory leaks and other weird issues. I don't have any reproducable steps yet but if I do I will list them here. Please let me know in the Issues section if you know more about this.
+### 10. Gesture Recognizer Targets
+```swift
+// ❌ Can create retain cycles
+let gesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
 
-### 7. Beware of SplitViewControllers
-Using a SplitViewController on an iPhone does result in some perculiar behavior. If you push or present a detail VC from the master and then close it the VC will not be removed but will stay active in memory. If you push/present a new detail VC thén the previous VC will actually be removed. This package takes this behavior into account. Just keep in mind that if you close a detail VC it will very much stay alive until you open a new one. It's not strictly a memory leak but it is a common cause of related issues if you're not aware of this behavior. Also fun is that on iPhone the initial detail VC _never_ deinits, so yeah...
+// ✅ Remove in deinit or use weak references
+deinit {
+    view.gestureRecognizers?.forEach { view.removeGestureRecognizer($0) }
+}
+```
+</details>
 
-### 8. ScrollView inertia
-If you have e.g. a long TableView and you swipe down it will keep scrolling for a little while before it stops. Now if you close the VC while this is happening the TableView will stay in memory for up to a second. This applies to all forms of ScrollViews. There does not seem to be a way to prevent this. The package is designed to wait at least a second before checking for leaks in this specific case to prevent false positives.
+## Debugging Tips
 
-### 9. UITextView URL preview
-iOS is not without its flaws, I noticed it has some memory leaks of its own. One that keeps bugging me is UITextViews. If you turn off editable, turn on isSelectable, enable link detection and add a URL to the text you get a nice preview if you long press the URL. However once you have done this the UITextView will be stuck in memory forever! I don't know how to fix this. In iOS 17 this can be fixed by subclassing the TextView and overriding `removeFromSuperview()`:
+<details>
+  <summary><b>Finding and Fixing Leaks</b></summary>
+
+### Using deinit for Debugging
+Add `deinit` methods to track object deallocation:
 
 ```swift
-//in UITextView subclass
-override func removeFromSuperview() {
-    let wasSelectable = isSelectable
-    isSelectable = false
-    super.removeFromSuperview()
-    isSelectable = wasSelectable
+class MyViewController: UIViewController {
+    deinit {
+        print("✅ MyViewController deallocated")
+    }
 }
 ```
-### 10. UITextField in iOS 17
-Text fields seem to have issues deinitting in iOS 17, mainly if `textContentType` is set. If you have a VC with multiple text fields, use at least one of them, then close the VC. Then ALL its text fields will leak until you use a different text field. I currently don't know how to deal with this.
 
-### Tips are welcome
+### Binary Search Debugging
+1. Comment out half of your `viewDidLoad` code
+2. Test if the leak still occurs
+3. Narrow down to the problematic code section
+4. Repeat until you find the exact cause
 
-Do you know other causes of leaks that aren't listed here? Please let me know in the Issues section so I can add them.
-</details>
-<details>
-  <summary><b>How do I know what causes my View or ViewController to leak?</b></summary>
+### Memory Graph Debugger
+1. Run your app in Xcode
+2. Navigate to the leaked screen and back
+3. Click the memory graph debugger button
+4. Look for objects that should have been deallocated
 
-This package only knows if a leak occurs but it doesn't know _why_: that's up to you to figure out. The list in the previous section should help you find the culprit. If you also get a deinit warning this probably means it has to do with a network call or some animation. In some cases you may get warnings of both ViewControllers and Views. Concentrate on fixing the ViewController first then any View warnings will usually go away too. A good strategy is to keep undressing your View or ViewController (mainly `ViewDidLoad()`) until the leak stops occuring. Or completely undress it first then put everything back piece by piece, or something in the middle (binary search).    
+### Instruments Integration
+While this package focuses on ViewControllers and Views, use Instruments for comprehensive memory analysis:
+1. Product → Profile
+2. Choose "Leaks" instrument
+3. Run your app and look for leak patterns
 </details>
-<details>
-  <summary><b>Using deinit{} to track leaks</b></summary>
 
-You can add `deinit{}` to any object to monitor if it deinits. A typical usage is `deinit{print("deinit \(self)")}`. Watch your console and see if the print shows up when the object is supposed to deinit. If you get a memory leak warning you may want to add this to the class to confirm that it actually leaked and/or a fix worked. 
-</details>
-<details>
-  <summary><b>Why not just use Instruments?</b></summary>
+## Performance Considerations
 
-You can use Xcode's instruments to find memory leaks. However these can be complicated to use and only works if you are specifically searching for leaks. The advantage of this package is that it always works and you don't have to keep it in mind. Also it works when your users are using it so you know when a memory leak occurs in the wild. Note that this package only detects leaked ViewControllers and Views and not other objects like the instruments can. ViewControllers tend to be the culprit of most leaks though so it's a good start.
-</details>
 <details>
-  <summary><b>Performance</b></summary>
+  <summary><b>Performance Impact</b></summary>
 
-Performance shouldn't be an issue for most apps because the code is well optimized. If you're concerned you may choose to just check for leaks in debug builds only. If you're experiencing performance issues or any other issues make sure to let me know in the Issues section.
-</details>
-<details>
-  <summary><b>SwiftUI</b></summary>
+- **Minimal Overhead**: The detector uses efficient weak references and delayed checks
+- **Debug vs Release**: Consider using shorter delays in debug builds for faster feedback
+- **Selective Monitoring**: You can disable detection in release builds if needed
 
-This package is not designed or tested to be used with SwiftUI. Since SwiftUI is much more struct based memory leaks aren't as much a thing there anyway. 
+```swift
+#if DEBUG
+LeakedViewControllerDetector.onDetect(detectionDelay: 0.5) { _, _, message in
+    print(message)
+    return true
+}
+#endif
+```
 </details>
-<details>
-  <summary><b>Disclaimer</b></summary>
 
-This package may produce false or positives or false negatives in certain situations. It is not guaranteed to catch every memory leak and it only detects leaked ViewControllers and its Views, not other object. Please go to the Issues section if you're experiencing trouble. This package makes use of method swizzling of the following methods: UIViewController's `viewDidAppear()`, `viewDidDisappear()`, `removeFromParent()` and UISplitViewController's `showDetailViewController()`.
-</details>
-<details>
-  <summary><b>Licence</b></summary>
-  
-MIT
-</details>
-<details>
-  <summary><b>Testimonials</b></summary>
-    
-Has this package helped you find any leaks? Please leave a message in the testimonials thread in the Issues section!
-</details>
+## Platform Support
+
+- **iOS**: 13.0+
+- **tvOS**: 13.0+
+- **Swift**: 6.0+
+- **Xcode**: 16.0+
+
+## Limitations
+
+- **SwiftUI**: Not designed for SwiftUI (which has fewer memory leak issues due to its value-type nature)
+- **Detection Scope**: Only detects UIViewController and UIView leaks, not other object types
+- **False Positives**: May occasionally report false positives in complex scenarios
+- **Method Swizzling**: Uses method swizzling on `viewDidAppear`, `viewDidDisappear`, `removeFromParent`, and `showDetailViewController`
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Inspired by the need for real-time memory leak detection in UIKit apps
+- Thanks to the iOS development community for feedback and suggestions
+- Special thanks to all contributors who have helped improve this tool
+
+## Support
+
+If you find this package helpful, please consider:
+- ⭐ Starring the repository
+- 🐛 Reporting issues
+- 💡 Suggesting improvements
+- 📖 Contributing to documentation
+
+---
+
+**Happy debugging! 🐛🔍**

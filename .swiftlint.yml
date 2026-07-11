@@ -1,0 +1,87 @@
+disabled_rules:
+  - trailing_whitespace
+  - todo
+  - force_unwrapping
+  - opening_brace
+  - trailing_comma
+
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - implicitly_unwrapped_optional
+  - redundant_nil_coalescing
+  - switch_case_on_newline
+  - unneeded_parentheses_in_closure_argument
+  - vertical_whitespace_closing_braces
+  - vertical_whitespace_opening_braces
+
+included:
+  - Sources
+  - Tests
+
+excluded:
+  - .build
+  - .swiftpm
+  - Packages
+  - TestApp
+
+line_length:
+  warning: 120
+  error: 150
+  ignores_function_declarations: true
+  ignores_comments: true
+  ignores_urls: true
+
+function_body_length:
+  warning: 100
+  error: 150
+
+function_parameter_count:
+  warning: 6
+  error: 8
+
+type_body_length:
+  warning: 300
+  error: 400
+
+file_length:
+  warning: 800
+  error: 1200
+
+cyclomatic_complexity:
+  warning: 10
+  error: 20
+
+nesting:
+  type_level:
+    warning: 3
+    error: 6
+
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  max_length:
+    warning: 50
+    error: 70
+  excluded:
+    - id
+    - vc
+    - x
+    - y
+    - i
+
+type_name:
+  min_length:
+    warning: 3
+    error: 2
+  max_length:
+    warning: 40
+    error: 50
+
+custom_rules:
+  no_objcMembers:
+    name: "@objcMembers"
+    regex: "@objcMembers"
+    message: "Prefer @objc on individual members over @objcMembers"
+    severity: warning 

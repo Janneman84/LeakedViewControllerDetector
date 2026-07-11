@@ -1,0 +1,116 @@
+# SwiftFormat configuration file
+# https://github.com/nicklockwood/SwiftFormat
+
+# File options
+--exclude .build,Packages,.swiftpm,TestApp
+
+# Format options
+--indent 4
+--tabwidth 4
+--maxwidth 120
+--linebreaks lf
+--semicolons never
+--trimwhitespace always
+--insertlines true
+--removelines true
+
+# Wrap options
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--wrapconditions before-first
+--wrapreturntype if-multiline
+--closingparen balanced
+--wrapternary before-operators
+
+# Spacing options
+--operatorfunc spaced
+--nospaceoperators ...,..<
+--ranges spaced
+
+# Organization options
+--importgrouping testable-bottom
+--commas always
+--decimalgrouping 3,6
+--binarygrouping 4,8
+--octalgrouping 4,8
+--hexgrouping 4,8
+--fractiongrouping disabled
+--exponentgrouping disabled
+
+# Rules (enabled by default, some explicitly disabled)
+--enable isEmpty
+--enable sortImports
+--enable duplicateImports
+--enable unusedArguments
+--enable redundantSelf
+--enable redundantReturn
+--enable redundantParens
+--enable redundantGet
+--enable redundantInit
+--enable redundantVoidReturnType
+--enable redundantNilInit
+--enable redundantLet
+--enable redundantPattern
+--enable redundantRawValues
+--enable redundantExtensionACL
+--enable redundantFileprivate
+--enable redundantClosure
+--enable redundantObjc
+--enable redundantType
+--enable redundantBreak
+--enable redundantBackticks
+--enable strongifiedSelf
+--enable trailingClosures
+--enable preferKeyPath
+--enable hoistPatternLet
+--enable wrapMultilineStatementBraces
+--enable braces
+--enable andOperator
+--enable leadingDelimiters
+--enable numberFormatting
+--enable spaceAroundParens
+--enable spaceInsideParens
+--enable spaceAroundBrackets
+--enable spaceInsideBrackets
+--enable spaceAroundBraces
+--enable spaceInsideBraces
+--enable spaceAroundGenerics
+--enable spaceInsideGenerics
+--enable spaceAroundOperators
+--enable spaceAroundComments
+--enable consecutiveSpaces
+--enable consecutiveBlankLines
+--enable blankLinesAtEndOfScope
+--enable blankLinesAtStartOfScope
+--enable blankLinesBetweenScopes
+--enable linebreakAtEndOfFile
+--enable indent
+--enable wrap
+--enable wrapArguments
+--enable todos
+--enable semicolons
+--enable typeSugar
+--enable preferForLoop
+--enable genericExtensions
+--enable opaqueGenericParameters
+
+# Disabled rules
+--disable fileHeader
+--disable organizeDeclarations
+--disable extensionAccessControl
+--disable markTypes
+--disable sortDeclarations
+--disable docComments
+--disable initCoderUnavailable
+
+# Self options
+--self remove
+--selfrequired expect
+
+# Header options (disabled)
+# --header strip
+
+# Experimental options
+--ifdef no-indent
+--xcodeindentation disabled 
