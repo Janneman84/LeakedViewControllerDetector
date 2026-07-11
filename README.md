@@ -1,10 +1,8 @@
 # LeakedViewControllerDetector for UIKit (iOS/tvOS)
 
-[![CI](https://github.com/matheus-gois/LeakedViewControllerDetector/workflows/CI/badge.svg)](https://github.com/matheus-gois/LeakedViewControllerDetector/actions)
-[![codecov](https://codecov.io/gh/maatheusgois-dd/LeakedViewControllerDetector/branch/main/graph/badge.svg)](https://codecov.io/gh/maatheusgois-dd/LeakedViewControllerDetector)
 [![Swift 6.0](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
 [![UIKit only](https://img.shields.io/badge/UIKit-red)](https://developer.apple.com/documentation/uikit)
-[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20tvOS-lightgrey.svg)](https://developer.apple.com/documentation/uikit)
+[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20tvOS%20%7C%20iOSOnMac%20%7C%20Catalyst-lightgrey.svg)](https://developer.apple.com/documentation/uikit)
 [![iOS 13.0+](https://img.shields.io/badge/iOS-13.0%2B-blue.svg)](https://developer.apple.com/ios/)
 [![tvOS 13.0+](https://img.shields.io/badge/tvOS-13.0%2B-blue.svg)](https://developer.apple.com/tvos/)
 [![Swift Package Manager compatible](https://img.shields.io/badge/spm-compatible-brightgreen.svg?style=flat)](https://swift.org/package-manager)
@@ -24,6 +22,17 @@ Remember having to deal with weird issues in your iOS or tvOS app, that turned o
 - ⚡ **Performance Optimized**: Fast and efficient with minimal overhead
 - 📱 **Platform Support**: Works on iOS 13.0+ and tvOS 13.0+
 - 🎯 **Swift 6.0**: Built with the latest Swift features and concurrency support
+
+## Screenshots
+
+_An alert with a screenshot pops up whenever a ViewController closes but doesn't deinit. The alert updates if the leak resolves itself._
+
+<img width="320" alt="alert1" src="https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/8646cfd9-9ebb-4b1f-860c-2477ce943627">  &nbsp;&nbsp;&nbsp;&nbsp;  <img width="550" alt="alert1" src="https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/1ef5b541-df19-45b1-994f-6107ec72b8c0">
+
+
+_The detector also detects leaked Views:_
+
+<img width="271" alt="alert2" src="https://github.com/Janneman84/LeakedViewControllerDetector/assets/9085167/8a53c16b-fa7e-462b-a817-e949e8417882">
 
 ## Installation
 
