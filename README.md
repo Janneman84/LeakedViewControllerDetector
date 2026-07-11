@@ -48,7 +48,7 @@ dependencies: [
 
 Or add it through Xcode:
 1. File → Add Package Dependencies
-2. Enter: `https://github.com/matheus-gois/LeakedViewControllerDetector.git`
+2. Enter: `https://github.com/Janneman84/LeakedViewControllerDetector.git`
 3. Select your target and add the package
 
 ## Quick Start
