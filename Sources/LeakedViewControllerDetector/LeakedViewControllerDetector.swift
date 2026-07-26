@@ -15,8 +15,8 @@ import UIKit
  */
 
 @MainActor
-public class LeakedViewControllerDetector {
-    fileprivate static var callback: (@Sendable (UIViewController?, UIView?, String) -> Bool?)?
+public class LeakedViewControllerDetector: NSObject {
+    fileprivate static var callback: (@Sendable (UIViewController?, UIView?, String?) -> Action)?
     fileprivate static var delay: Double = 1.0
     fileprivate static var warningWindow: UIWindow?
     fileprivate static var lastBackgroundedDate = Date(timeIntervalSince1970: 0)
@@ -25,11 +25,11 @@ public class LeakedViewControllerDetector {
      Triggers the callback whenever a leaked ViewController or View is detected.
 
       - Parameter detectionDelay: The time in seconds allowed for each ViewController or View to deinit itself after it has been closed/removed (i.e. grace period). If it or any of its subviews are still in memory (alive) after the delay the callback will be triggered. Increasing the delay may prevent certain false positives. The default 1.0s is recommended, though a tighter delay may be considered for debug builds.
-      - Parameter callback: This will be triggered every time a ViewController closes or View is removed but it or one of its subviews don't deinit. It will trigger again once it does deinit (if ever). It either provides the ViewController or the View that has leaked and a warning message string that you can use to log. The provided ViewController and View will both be nil in case of a deinit warning. Return true to show an alert dialog with the message. Return nil if you want to prevent a future deinit of the ViewController or View from triggering the callback again (useful if you want to ignore warnings of certain ViewControllers/Views).
+      - Parameter callback: This will be triggered every time a ViewController closes or View is removed but it or one of its subviews don't deinit. It will trigger again once it does deinit (if ever). It either provides the ViewController or the View that has leaked and a warning message string that you can use to log. The provided ViewController and View will both be nil in case of a deinit warning.
       */
-    public static func onDetect(
+    @objc public static func onDetect(
         detectionDelay: TimeInterval = 1.0,
-        callback: @escaping @Sendable (UIViewController?, UIView?, String) -> Bool?
+        callback: @escaping @Sendable (UIViewController?, UIView?, String?) -> Action
     ) {
         UIViewController.lvcdSwizzleLifecycleMethods()
         delay = detectionDelay
@@ -42,11 +42,20 @@ public class LeakedViewControllerDetector {
             object: nil
         )
     }
+    
+    @objc public enum Action: Int {
+        /// Return this to ignore the detected leak. Nothing happens or changes. Recommended in case of a false positive.
+        case falsePositive = 0
+        /// Return this if the detected leak is valid. It will show an alert with a screenshot. You will no longer receive leak warnings from this object until it deinits (i.e. the leak resolves itself). Recommended for debug builds.
+        case showAlert = 1
+        /// Return this if the detected leak is valid but do not want to show an alert. You may use the message string to print to console or log it somewhere. You will no longer receive leak warnings from this object until it deinits (i.e. the leak resolves itself). Recommended for release builds.
+        case dontShowAlert = 2
+    }
 
     /**
      ViewControllers that belongs to any of these Windows will not be checked for leaks. It contains 2 names by default.
      */
-    public static let ignoredWindowClassNames: [String] = [
+    @objc public static let ignoredWindowClassNames: [String] = [
         "UIRemoteKeyboardWindow",
         "UITextEffectsWindow",
     ]
@@ -54,7 +63,7 @@ public class LeakedViewControllerDetector {
     /**
      ViewControllers which class is any of these names will not be checked for leaks. It contains a few names by default.
      */
-    public static let ignoredViewControllerClassNames: [String] = [
+    @objc public static let ignoredViewControllerClassNames: [String] = [
         "UICompatibilityInputViewController",
         "_SFAppPasswordSavingViewController",
         "UIKeyboardHiddenViewController_Save",
@@ -66,7 +75,7 @@ public class LeakedViewControllerDetector {
     /**
      Views which class is any of these names will not be checked for leaks. It contains a few names by default.
      */
-    public static let ignoredViewClassNames: [String] = [
+    @objc public static let ignoredViewClassNames: [String] = [
         "PLTileContainerView",
         "CAMPreviewView",
         "_UIPointerInteractionAssistantEffectContainerView",
@@ -125,13 +134,13 @@ private extension UIView {
                     if let bundleName = Bundle.main.infoDictionary?["CFBundleName"] {
                         errorMessage = errorMessage.replacingOccurrences(of: "\(bundleName).", with: "")
                     }
-                    let showAlert = LeakedViewControllerDetector.callback?(
+                    let action = LeakedViewControllerDetector.callback?(
                         nil,
                         leakedView,
                         "\(errorTitle) \(errorMessage)"
                     )
                     var screenshot: UIImage?
-                    if showAlert ?? false {
+                    if action == .showAlert {
                         screenshot = leakedView.makeScreenshot()
                         UIViewController.lvcdShowWarningAlert(
                             errorTitle: errorTitle,
@@ -141,7 +150,7 @@ private extension UIView {
                         )
                     }
 
-                    if showAlert != nil {
+                    if action != .falsePositive {
                         let deallocator = LVCDDeallocator()
                         deallocator.memoryLeakDetectionDate = Date().timeIntervalSince1970 - delay
                         deallocator.errorMessage = errorMessage
@@ -379,10 +388,26 @@ private extension UIViewController {
     }
 
     private static let lvcdActuallySwizzleLifecycleMethods: Void = {
-        let originalVdaMethod = class_getInstanceMethod(UIViewController.self, #selector(viewDidLoad))
-        let swizzledVdaMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdViewDidLoad))
-        method_exchangeImplementations(originalVdaMethod!, swizzledVdaMethod!)
+        let originalVdlMethod = class_getInstanceMethod(UIViewController.self, #selector(viewDidLoad))
+        let swizzledVdlMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdViewDidLoad))
+        method_exchangeImplementations(originalVdlMethod!, swizzledVdlMethod!)
 
+//        let originalVwaMethod = class_getInstanceMethod(UIViewController.self, #selector(viewWillAppear(_:)))
+//        let swizzledVwaMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdViewWillAppear(_:)))
+//        method_exchangeImplementations(originalVwaMethod!, swizzledVwaMethod!)
+//        
+//        let originalViaMethod = class_getInstanceMethod(UIViewController.self, #selector(viewIsAppearing(_:)))
+//        let swizzledViaMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdViewIsAppearing(_:)))
+//        method_exchangeImplementations(originalViaMethod!, swizzledViaMethod!)
+//        
+//        let originalVdaMethod = class_getInstanceMethod(UIViewController.self, #selector(viewDidAppear(_:)))
+//        let swizzledVdaMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdViewDidAppear(_:)))
+//        method_exchangeImplementations(originalVdaMethod!, swizzledVdaMethod!)
+        
+        let originalVwdMethod = class_getInstanceMethod(UIViewController.self, #selector(viewWillDisappear(_:)))
+        let swizzledVwdMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdViewWillDisappear(_:)))
+        method_exchangeImplementations(originalVwdMethod!, swizzledVwdMethod!)
+        
         let originalVddMethod = class_getInstanceMethod(UIViewController.self, #selector(viewDidDisappear(_:)))
         let swizzledVddMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdViewDidDisappear(_:)))
         method_exchangeImplementations(originalVddMethod!, swizzledVddMethod!)
@@ -407,12 +432,16 @@ private extension UIViewController {
     }()
 
     func lvcdShouldIgnore() -> Bool {
+        self is LVCDViewController
+        ||
+        self is LVCDAlertController
+        ||
         LeakedViewControllerDetector.ignoredViewControllerClassNames.contains(type(of: self).description())
-            ||
-            (isViewLoaded && view?.window != nil && LeakedViewControllerDetector.ignoredWindowClassNames
-                .contains(type(of: view.window!).description())
-            )
-            || objc_getAssociatedObject(self, &LVCDSplitViewAssociatedObject.key) != nil
+        ||
+        (isViewLoaded && view?.window != nil && LeakedViewControllerDetector.ignoredWindowClassNames
+            .contains(type(of: view.window!).description())
+        )
+        || objc_getAssociatedObject(self, &LVCDSplitViewAssociatedObject.key) != nil
     }
 
     @objc private func lvcdSetView(_ newView: UIView?) {
@@ -422,21 +451,20 @@ private extension UIViewController {
         }
         lvcdSetView(newView)
     }
-
-    @objc private func lvcdViewDidLoad() {
-        lvcdViewDidLoad() // run original implementation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            guard let self else { return }
-            if !lvcdShouldIgnore() {
-                if objc_getAssociatedObject(self, &LVCDDeallocator.key) == nil {
-                    objc_setAssociatedObject(
-                        self,
-                        &LVCDDeallocator.key,
-                        LVCDDeallocator(view),
-                        .OBJC_ASSOCIATION_RETAIN
-                    )
-                }
+    
+    func setAssociatedObject(warn: Bool = true) {
+        if !lvcdShouldIgnore() {
+            if objc_getAssociatedObject(self, &LVCDDeallocator.key) == nil {
+                objc_setAssociatedObject(
+                    self,
+                    &LVCDDeallocator.key,
+                    LVCDDeallocator(view),
+                    .OBJC_ASSOCIATION_RETAIN
+                )
                 addCheckForMemoryLeakObserver(skipIgnoreCheck: true)
+                if warn {
+//                    print("super.viewDidLoad() not called? \(self)")
+                }
             }
         }
     }
@@ -457,9 +485,42 @@ private extension UIViewController {
         }
     }
 
+    @objc private func lvcdViewDidLoad() {
+        lvcdViewDidLoad() // run original implementation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.setAssociatedObject(warn: false)
+        }
+    }
+    
+//    @objc private func lvcdViewWillAppear(_ animated: Bool) {
+//        lvcdViewWillAppear(animated) // run original implementation
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+//            self?.setAssociatedObject()
+//        }
+//    }
+//    
+//    @objc private func lvcdViewIsAppearing(_ animated: Bool) {
+//        lvcdViewIsAppearing(animated) // run original implementation
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+//            self?.setAssociatedObject()
+//        }
+//    }
+//    
+//    @objc private func lvcdViewDidAppear(_ animated: Bool) {
+//        lvcdViewDidAppear(animated) // run original implementation
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+//            self?.setAssociatedObject()
+//        }
+//    }
+    
+    @objc private func lvcdViewWillDisappear(_ animated: Bool) {
+        lvcdViewWillDisappear(animated) // run original implementation
+        setAssociatedObject()
+    }
+    
     @objc private func lvcdViewDidDisappear(_ animated: Bool) {
         lvcdViewDidDisappear(animated) // run original implementation
-
+        setAssociatedObject()
         // ignore parent VCs because one of their children will trigger viewDidDisappear() too
         if
             (self as? UINavigationController)?.viewControllers.isEmpty ?? true,
@@ -519,9 +580,12 @@ private extension UIViewController {
         // double checking
         guard !Self.lvcdMemoryCheckQueue.contains(objectIdentifier) else { return }
         Self.lvcdMemoryCheckQueue.insert(objectIdentifier)
-
-        DispatchQueue.main.async { [self] in
+        let delay = LeakedViewControllerDetector.delay
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + min(0.15, delay)-0.05) {
             Self.lvcdMemoryCheckQueue.remove(objectIdentifier)
+        }
+//        DispatchQueue.main.async() { [self] in
             let rootParentVC = lvcdRootParentViewController
             guard
                 rootParentVC.presentedViewController == nil,
@@ -536,7 +600,6 @@ private extension UIViewController {
 
             let startTime = Date()
 
-            let delay = LeakedViewControllerDetector.delay
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 // if self is nil it deinitted, so no memory leak
                 guard let self else { return }
@@ -554,13 +617,13 @@ private extension UIViewController {
                     lvcdCheckForMemoryLeak(restarted: true)
                     return
                 }
-
+                
                 // these conditions constitute a 'limbo' ViewController, i.e. a memory leak:
                 if
-                    !isViewLoaded || view?.window == nil, parent == nil,
+                    !isViewLoaded || view?.window == nil,
+                    parent == nil,
                     presentedViewController == nil,
-                    view == nil || view.superview == nil || type(of: view.rootView)
-                        .description() == "UILayoutContainerView"
+                    view == nil || view.superview == nil || (type(of: view.rootView).description() == "UILayoutContainerView" && view.rootView.viewController == nil)
                 {
                     // once warned don't warn again
                     NotificationCenter.lvcd.removeObserver(
@@ -599,9 +662,9 @@ private extension UIViewController {
 
                         errorMessage = errorMessage.replacingOccurrences(of: ",;", with: ";")
                     }
-                    let showAlert = LeakedViewControllerDetector.callback?(self, nil, "\(errorTitle) \(errorMessage)")
+                    let action = LeakedViewControllerDetector.callback?(self, nil, "\(errorTitle) \(errorMessage)")
                     var screenshot: UIImage?
-                    if showAlert ?? false {
+                    if action == .showAlert {
                         screenshot = view?.rootView.makeScreenshot()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                             Self.lvcdShowWarningAlert(
@@ -612,8 +675,8 @@ private extension UIViewController {
                             )
                         }
                     }
-
-                    if showAlert != nil {
+                    
+                    if action != .falsePositive {
                         deallocator.memoryLeakDetectionDate = Date().timeIntervalSince1970 - delay
                         deallocator.errorMessage = errorMessage
                         deallocator.objectIdentifier = Int(bitPattern: ObjectIdentifier(self))
@@ -622,7 +685,7 @@ private extension UIViewController {
                     }
                 }
             }
-        }
+//        }
     }
 
     // call this if VC deinits, if memory leak was detected earlier it apparently resolved itself, so notify this:
@@ -639,7 +702,7 @@ private extension UIViewController {
         let errorTitle = "LEAKED \(objectType) DEINNITED"
         let errorMessage = String(format: "\(errorMessage)\n\nDeinnited after %.3fs.", interval)
 
-        if LeakedViewControllerDetector.callback?(nil, nil, "\(errorTitle) \(errorMessage)") ?? false {
+        if LeakedViewControllerDetector.callback?(nil, nil, "\(errorTitle) \(errorMessage)") == .showAlert {
             Self.lvcdShowWarningAlert(
                 errorTitle: errorTitle,
                 errorMessage: errorMessage,
@@ -777,20 +840,10 @@ private extension UIViewController {
     }
 
     class LVCDViewController: UIViewController {
-        override func viewDidAppear(_: Bool) {
-            // purposely not calling super here so it won't trigger a warning itself
-        }
-
-        override func viewDidDisappear(_: Bool) {
-            // purposely not calling super here so it won't trigger a warning itself
-        }
+        // gets listed in lvcdShouldIgnore() to prevent trigering warnings itself
     }
 
     class LVCDAlertController: UIAlertController {
-        override func viewDidAppear(_: Bool) {
-            // purposely not calling super here so it won't trigger a warning itself
-        }
-
         override func viewWillDisappear(_ animated: Bool) {
             super.viewWillDisappear(animated)
             if LeakedViewControllerDetector.warningWindow?.rootViewController == presentingViewController {
@@ -802,9 +855,8 @@ private extension UIViewController {
             }
         }
 
-        override func viewDidDisappear(_: Bool) {
-            // purposely not calling super here so it won't trigger a warning itself
-
+        override func viewDidDisappear(_ animated: Bool) {
+            super.viewDidDisappear(animated)
             // failsafe in case somehow window doesn't go away you can at least see it
             DispatchQueue.main.async {
                 LeakedViewControllerDetector.warningWindow?.alpha = 1.0
