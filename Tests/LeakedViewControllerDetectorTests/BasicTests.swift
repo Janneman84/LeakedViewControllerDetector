@@ -20,7 +20,7 @@ class BasicTests: XCTestCase {
 
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { _, _, _ in
             expectation.fulfill()
-            return false
+            return .dontShowAlert
         }
 
         // Wait a short time to ensure callback isn't called immediately
@@ -66,11 +66,11 @@ class BasicTests: XCTestCase {
     func testDetectorConfiguration() {
         // Test that we can configure the detector with different delays
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.5) { _, _, _ in
-            false
+            .dontShowAlert
         }
 
         LeakedViewControllerDetector.onDetect(detectionDelay: 1.0) { _, _, _ in
-            true
+            .showAlert
         }
 
         // Configuration should not crash
@@ -83,7 +83,7 @@ class BasicTests: XCTestCase {
 
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { _, _, _ in
             expectation.fulfill()
-            return false
+            return .dontShowAlert
         }
 
         // Create a view hierarchy that will trigger the detection

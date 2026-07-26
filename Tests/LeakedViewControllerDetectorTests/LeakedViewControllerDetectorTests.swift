@@ -21,7 +21,7 @@ class LeakedViewControllerDetectorTests: XCTestCase {
     func testOnDetectConfiguration() {
         // Test that the callback can be configured without requiring it to be invoked
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.5) { _, _, _ in
-            false
+            .dontShowAlert
         }
 
         // Verify configuration was successful
@@ -32,7 +32,7 @@ class LeakedViewControllerDetectorTests: XCTestCase {
         let customDelay: TimeInterval = 2.0
 
         LeakedViewControllerDetector.onDetect(detectionDelay: customDelay) { _, _, _ in
-            false
+            .dontShowAlert
         }
 
         // The delay is stored internally, we can't directly access it but we can test behavior
@@ -98,7 +98,7 @@ class LeakedViewControllerDetectorTests: XCTestCase {
 
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { _, _, _ in
             expectation.fulfill()
-            return false
+            return .dontShowAlert
         }
 
         // Create and properly clean up a view controller
@@ -132,7 +132,7 @@ class LeakedViewControllerDetectorTests: XCTestCase {
             XCTAssertNotNil(view, "View should not be nil for view leak")
             XCTAssertTrue(message.contains("VIEW STILL IN MEMORY"), "Message should indicate view leak")
 
-            return false
+            return .dontShowAlert
         }
 
         let parentView = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
@@ -153,7 +153,7 @@ class LeakedViewControllerDetectorTests: XCTestCase {
 
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { _, _, _ in
             expectation.fulfill()
-            return false
+            return .dontShowAlert
         }
 
         let parentView = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
@@ -267,7 +267,7 @@ class LeakedViewControllerDetectorTests: XCTestCase {
     func testCallbackReturnValues() {
         // Test callback configuration without requiring actual leak detection
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { _, _, _ in
-            true // Show alert
+            .showAlert // Show alert
         }
 
         // Verify callback was configured successfully

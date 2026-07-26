@@ -21,7 +21,7 @@ class EdgeCaseTests: XCTestCase {
 
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { _, _, _ in
             expectation.fulfill()
-            return false
+            return .dontShowAlert
         }
 
         // Test with a mock ignored view controller
@@ -87,7 +87,7 @@ class EdgeCaseTests: XCTestCase {
 
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.05) { _, _, _ in
             expectation.fulfill()
-            return false
+            return .dontShowAlert
         }
 
         let containerView = UIView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
@@ -135,7 +135,7 @@ class EdgeCaseTests: XCTestCase {
 
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { _, _, _ in
             expectation.fulfill()
-            return false
+            return .dontShowAlert
         }
 
         let containerView = UIView(frame: CGRect(x: 0, y: 0, width: 500, height: 500))
@@ -165,7 +165,7 @@ class EdgeCaseTests: XCTestCase {
     func testVeryShortDetectionDelay() {
         // Test configuration with very short delay
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.01) { _, _, _ in
-            false
+            .dontShowAlert
         }
 
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
@@ -181,7 +181,7 @@ class EdgeCaseTests: XCTestCase {
     func testVeryLongDetectionDelay() {
         // Test configuration with very long delay
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.3) { _, _, _ in
-            false
+            .dontShowAlert
         }
 
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
@@ -227,7 +227,7 @@ class EdgeCaseTests: XCTestCase {
     func testCallbackWithNilReturnValue() {
         // Test callback configuration with nil return value
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { _, _, _ in
-            nil // Prevent future callbacks
+            .falsePositive // Prevent future callbacks
         }
 
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
@@ -251,7 +251,7 @@ class EdgeCaseTests: XCTestCase {
         // Test multiple detection cycles without requiring actual detection
         for _ in 0..<3 {
             LeakedViewControllerDetector.onDetect(detectionDelay: 0.05) { _, _, _ in
-                false
+                .dontShowAlert
             }
 
             let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))

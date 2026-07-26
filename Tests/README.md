@@ -118,7 +118,7 @@ func testAsyncScenario() async throws {
     
     LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { vc, view, message in
         detectionTriggered = true
-        return false
+        return .dontShowAlert
     }
     
     // Action
@@ -181,7 +181,7 @@ do {
 // Add debug output
 LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { vc, view, message in
     print("🔍 Detected: \(message)")
-    return false
+    return .dontShowAlert
 }
 
 // Verify object deallocation
@@ -211,7 +211,7 @@ func testSpecificScenario() async throws {
     var detectionTriggered = false
     LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { vc, view, message in
         detectionTriggered = true
-        return false
+        return .dontShowAlert
     }
     
     // Act
