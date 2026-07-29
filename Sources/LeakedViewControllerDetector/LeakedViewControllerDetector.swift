@@ -48,14 +48,16 @@ public class LeakedViewControllerDetector: NSObject {
         case falsePositive = 0
         /// Return this if the detected leak is valid. It will show an alert with a screenshot. You will no longer receive leak warnings from this object until it deinits (i.e. the leak resolves itself). Recommended for debug builds.
         case showAlert = 1
+        /// The regular .showAlert shows a screenshot, but in some obscure cases this may cause issues. If you think this is the case try this option instead.
+        case showAlertWithoutScreenshot = 2
         /// Return this if the detected leak is valid but do not want to show an alert. You may use the message string to print to console or log it somewhere. You will no longer receive leak warnings from this object until it deinits (i.e. the leak resolves itself). Recommended for release builds.
-        case dontShowAlert = 2
+        case dontShowAlert = 3
     }
 
     /**
      ViewControllers that belongs to any of these Windows will not be checked for leaks. It contains 2 names by default.
      */
-    @objc public static let ignoredWindowClassNames: [String] = [
+    @objc public static var ignoredWindowClassNames: [String] = [
         "UIRemoteKeyboardWindow",
         "UITextEffectsWindow",
     ]
@@ -63,7 +65,7 @@ public class LeakedViewControllerDetector: NSObject {
     /**
      ViewControllers which class is any of these names will not be checked for leaks. It contains a few names by default.
      */
-    @objc public static let ignoredViewControllerClassNames: [String] = [
+    @objc public static var ignoredViewControllerClassNames: [String] = [
         "UICompatibilityInputViewController",
         "_SFAppPasswordSavingViewController",
         "UIKeyboardHiddenViewController_Save",
@@ -75,7 +77,7 @@ public class LeakedViewControllerDetector: NSObject {
     /**
      Views which class is any of these names will not be checked for leaks. It contains a few names by default.
      */
-    @objc public static let ignoredViewClassNames: [String] = [
+    @objc public static var ignoredViewClassNames: [String] = [
         "PLTileContainerView",
         "CAMPreviewView",
         "_UIPointerInteractionAssistantEffectContainerView",
@@ -140,8 +142,8 @@ private extension UIView {
                         "\(errorTitle) \(errorMessage)"
                     )
                     var screenshot: UIImage?
-                    if action == .showAlert {
-                        screenshot = leakedView.makeScreenshot()
+                    if action == .showAlert || action == .showAlertWithoutScreenshot {
+                        screenshot = action == .showAlert ? leakedView.makeScreenshot() : nil
                         UIViewController.lvcdShowWarningAlert(
                             errorTitle: errorTitle,
                             errorMessage: errorMessage,
@@ -515,16 +517,16 @@ private extension UIViewController {
     
     @objc private func lvcdViewWillDisappear(_ animated: Bool) {
         lvcdViewWillDisappear(animated) // run original implementation
-        DispatchQueue.main.async() { [weak self] in
-            self?.setAssociatedObject()
-        }
+//        DispatchQueue.main.async() { [weak self] in
+            self.setAssociatedObject()
+//        }
     }
     
     @objc private func lvcdViewDidDisappear(_ animated: Bool) {
         lvcdViewDidDisappear(animated) // run original implementation
-        DispatchQueue.main.async() { [weak self] in
-            self?.setAssociatedObject()
-        }
+//        DispatchQueue.main.async() { [weak self] in
+            self .setAssociatedObject()
+//        }
         // ignore parent VCs because one of their children will trigger viewDidDisappear() too
         if
             (self as? UINavigationController)?.viewControllers.isEmpty ?? true,
@@ -629,12 +631,6 @@ private extension UIViewController {
                     presentedViewController == nil,
                     view == nil || view.superview == nil || (type(of: view.rootView).description() == "UILayoutContainerView" && view.rootView.viewController == nil)
                 {
-                    // once warned don't warn again
-                    NotificationCenter.lvcd.removeObserver(
-                        self,
-                        name: Self.lvcdCheckForMemoryLeakNotification,
-                        object: nil
-                    )
                     let errorTitle = "VIEWCONTROLLER STILL IN MEMORY"
                     var errorMessage = debugDescription.lvcdRemoveBundleAndModuleName()
 
@@ -668,8 +664,8 @@ private extension UIViewController {
                     }
                     let action = LeakedViewControllerDetector.callback?(self, nil, "\(errorTitle) \(errorMessage)")
                     var screenshot: UIImage?
-                    if action == .showAlert {
-                        screenshot = view?.rootView.makeScreenshot()
+                    if action == .showAlert || action == .showAlertWithoutScreenshot {
+                        screenshot = action == .showAlert ? view?.rootView.makeScreenshot() : nil
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                             Self.lvcdShowWarningAlert(
                                 errorTitle: errorTitle,
@@ -681,6 +677,13 @@ private extension UIViewController {
                     }
                     
                     if action != .falsePositive {
+                        // once warned don't warn again
+                        NotificationCenter.lvcd.removeObserver(
+                            self,
+                            name: Self.lvcdCheckForMemoryLeakNotification,
+                            object: nil
+                        )
+                        
                         deallocator.memoryLeakDetectionDate = Date().timeIntervalSince1970 - delay
                         deallocator.errorMessage = errorMessage
                         deallocator.objectIdentifier = Int(bitPattern: ObjectIdentifier(self))
@@ -705,14 +708,15 @@ private extension UIViewController {
 
         let errorTitle = "LEAKED \(objectType) DEINNITED"
         let errorMessage = String(format: "\(errorMessage)\n\nDeinnited after %.3fs.", interval)
-
-        if LeakedViewControllerDetector.callback?(nil, nil, "\(errorTitle) \(errorMessage)") == .showAlert {
+        let action = LeakedViewControllerDetector.callback?(nil, nil, "\(errorTitle) \(errorMessage)")
+        
+        if action == .showAlert || action == .showAlertWithoutScreenshot {
             Self.lvcdShowWarningAlert(
                 errorTitle: errorTitle,
                 errorMessage: errorMessage,
                 resolved: true,
                 objectIdentifier: objectIdentifier,
-                screenshot: screenshot
+                screenshot: action == .showAlert ? screenshot : nil
             )
         }
     }
@@ -757,7 +761,7 @@ private extension UIViewController {
             imgAction.setValue(screenshot.withRenderingMode(.alwaysOriginal), forKey: "image")
             alert.addAction(imgAction)
             var bgFound = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1/30.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1/10.0) {
                 alert.view.iterateSubviews() { view, level  in
                     // Try to get rid of ugly circle background, no big deal if this fails
                     if type(of: view).description() == "_UIAlertControllerFilledBackgroundView" {
@@ -870,6 +874,27 @@ private extension UIViewController {
         override func viewWillAppear(_ animated: Bool) {
             super.viewWillAppear(animated)
             updateWindowColor()
+            view.superview?.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(alertBackgroundTapped)))
+        }
+        
+        @objc func alertBackgroundTapped() {
+            guard !isBeingDismissed else { return }
+            for action in actions {
+                if action.isEnabled {
+                    presentingViewController?.dismiss(animated: true) {
+                        self.triggerAction(action)
+                    }
+                }
+                break
+            }
+        }
+        
+        typealias alertActionHandler = @convention(block) (UIAlertAction) -> Void
+        
+        func triggerAction(_ action: UIAlertAction) {
+            guard let block = action.value(forKey: "handler") else { return }
+            let handler = unsafeBitCast(block as AnyObject, to: alertActionHandler.self)
+            handler(action)
         }
 
         var preferredWindowColor: UIColor = .clear { didSet {
