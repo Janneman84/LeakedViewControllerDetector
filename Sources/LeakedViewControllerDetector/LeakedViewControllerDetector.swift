@@ -563,136 +563,118 @@ private extension UIViewController {
         lvcdShowDetailViewController(vc, sender: sender) // run original implementation
     }
 
-    @MainActor
-    static var lvcdMemoryCheckQueue = Set<ObjectIdentifier>()
-
     var lvcdRootParentViewController: UIViewController {
         parent?.lvcdRootParentViewController ?? self
     }
 
     @objc private func lvcdCheckForMemoryLeak(restarted: Bool = false) {
-        // only check when active for now
-        guard UIApplication.shared.applicationState == .active else {
-            return
-        }
-
-        if (view != nil && view.window != nil) || lvcdShouldIgnore() {
-            return
-        }
-
-        let objectIdentifier = ObjectIdentifier(self)
-
-        // in some cases lvcdCheckForMemoryLeakNotification may be called multiple times at once, this guard prevents
-        // double checking
-        guard !Self.lvcdMemoryCheckQueue.contains(objectIdentifier) else { return }
-        Self.lvcdMemoryCheckQueue.insert(objectIdentifier)
-        let delay = LeakedViewControllerDetector.delay
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + min(0.15, delay)-0.05) {
-            Self.lvcdMemoryCheckQueue.remove(objectIdentifier)
+        let rootParentVC = lvcdRootParentViewController
+        
+        guard UIApplication.shared.applicationState == .active,
+              view == nil || view?.window == nil,
+              !lvcdShouldIgnore(),
+              rootParentVC.presentedViewController == nil,
+              !isViewLoaded || rootParentVC.view.window == nil,
+              let deallocator = objc_getAssociatedObject(self, &LVCDDeallocator.key) as? LVCDDeallocator,
+              deallocator.objectIdentifier == 0,
+              !deallocator.pending else { return }
+    
+        deallocator.pending = true
+    
+        if let svc = self as? UISplitViewController {
+            NotificationCenter.lvcd.post(name: Self.lvcdCheckForSplitViewVCMemoryLeakNotification, object: svc)
         }
-//        DispatchQueue.main.async() { [self] in
-            let rootParentVC = lvcdRootParentViewController
-            guard
-                rootParentVC.presentedViewController == nil,
-                !isViewLoaded || rootParentVC.view.window == nil,
-                let deallocator = objc_getAssociatedObject(self, &LVCDDeallocator.key) as? LVCDDeallocator,
-                deallocator.objectIdentifier == 0
-            else { return }
 
-            if let svc = self as? UISplitViewController {
-                NotificationCenter.lvcd.post(name: Self.lvcdCheckForSplitViewVCMemoryLeakNotification, object: svc)
+        let startTime = Date()
+        let delay = LeakedViewControllerDetector.delay
+    
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self, weak deallocator] in
+            // if self is nil it deinitted, so no memory leak
+            guard let self, let deallocator else { return }
+            
+            deallocator.pending = false
+
+            // if backgrounded now or during the delay ignore for now
+            if UIApplication.shared.applicationState != .active || LeakedViewControllerDetector.lastBackgroundedDate > startTime {
+                return
             }
 
-            let startTime = Date()
+            // if somehow this asyncAfter code is executed way too late restart just in case
+            if !restarted, abs(startTime.timeIntervalSinceNow) > (delay + 0.5) {
+                lvcdCheckForMemoryLeak(restarted: true)
+                return
+            }
+            
+            // these conditions constitute a 'limbo' ViewController, i.e. a memory leak:
+            if
+                !isViewLoaded || view?.window == nil,
+                parent == nil,
+                presentedViewController == nil,
+                view == nil || view.superview == nil || (type(of: view.rootView).description() == "UILayoutContainerView" && view.rootView.viewController == nil)
+            {
+                let errorTitle = "VIEWCONTROLLER STILL IN MEMORY"
+                var errorMessage = debugDescription.lvcdRemoveBundleAndModuleName()
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                // if self is nil it deinitted, so no memory leak
-                guard let self else { return }
-
-                // if backgrounded now or during the delay ignore for now
-                if
-                    UIApplication.shared.applicationState != .active || LeakedViewControllerDetector
-                        .lastBackgroundedDate > startTime
-                {
-                    return
+                // add children's names to the message in case of NavVC or TabVC for easier identification
+                if let nvc = self as? UINavigationController {
+                    errorMessage = "\(errorMessage):\n\(nvc.viewControllers)"
                 }
+                if let tbvc = self as? UITabBarController, let vcs = tbvc.viewControllers {
+                    errorMessage = "\(errorMessage):\n\(vcs)"
+                }
+                // add alert title/message to the message for easier identification
+                if let alertVC = self as? UIAlertController {
+                    var actions = alertVC.actions.isEmpty ? "-" : ""
+                    for action in alertVC.actions {
+                        actions = "\(actions) \"\(action.title ?? "-")\","
+                    }
 
-                // if somehow this asyncAfter code is executed way too late restart just in case
-                if !restarted, abs(startTime.timeIntervalSinceNow) > (delay + 0.5) {
-                    lvcdCheckForMemoryLeak(restarted: true)
-                    return
+                    let title = (alertVC.title ?? "").isEmpty ? "" : alertVC.title!
+                    let message = (alertVC.message ?? "").isEmpty ? "" : alertVC.message!
+                    errorMessage = "\(errorMessage)\n title: \"\(title)\";\nmessage: \"\(message)\";\nactions: \(actions);"
+
+                    if !(alertVC.textFields ?? []).isEmpty {
+                        var tfs = ""
+                        for tf in alertVC.textFields ?? [] {
+                            tfs = "\(tfs) \"\(tf.placeholder ?? "-")\","
+                        }
+                        errorMessage += "\ntextfields: \(tfs);"
+                    }
+
+                    errorMessage = errorMessage.replacingOccurrences(of: ",;", with: ";")
+                }
+                let action = LeakedViewControllerDetector.callback?(self, nil, "\(errorTitle) \(errorMessage)")
+                var screenshot: UIImage?
+                if action == .showAlert || action == .showAlertWithoutScreenshot {
+                    screenshot = action == .showAlert ? view?.rootView.makeScreenshot() : nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        Self.lvcdShowWarningAlert(
+                            errorTitle: errorTitle,
+                            errorMessage: errorMessage,
+                            objectIdentifier: Int(bitPattern: ObjectIdentifier(self)),
+                            screenshot: screenshot
+                        )
+                    }
                 }
                 
-                // these conditions constitute a 'limbo' ViewController, i.e. a memory leak:
-                if
-                    !isViewLoaded || view?.window == nil,
-                    parent == nil,
-                    presentedViewController == nil,
-                    view == nil || view.superview == nil || (type(of: view.rootView).description() == "UILayoutContainerView" && view.rootView.viewController == nil)
-                {
-                    let errorTitle = "VIEWCONTROLLER STILL IN MEMORY"
-                    var errorMessage = debugDescription.lvcdRemoveBundleAndModuleName()
-
-                    // add children's names to the message in case of NavVC or TabVC for easier identification
-                    if let nvc = self as? UINavigationController {
-                        errorMessage = "\(errorMessage):\n\(nvc.viewControllers)"
-                    }
-                    if let tbvc = self as? UITabBarController, let vcs = tbvc.viewControllers {
-                        errorMessage = "\(errorMessage):\n\(vcs)"
-                    }
-                    // add alert title/message to the message for easier identification
-                    if let alertVC = self as? UIAlertController {
-                        var actions = alertVC.actions.isEmpty ? "-" : ""
-                        for action in alertVC.actions {
-                            actions = "\(actions) \"\(action.title ?? "-")\","
-                        }
-
-                        let title = (alertVC.title ?? "").isEmpty ? "" : alertVC.title!
-                        let message = (alertVC.message ?? "").isEmpty ? "" : alertVC.message!
-                        errorMessage = "\(errorMessage)\n title: \"\(title)\";\nmessage: \"\(message)\";\nactions: \(actions);"
-
-                        if !(alertVC.textFields ?? []).isEmpty {
-                            var tfs = ""
-                            for tf in alertVC.textFields ?? [] {
-                                tfs = "\(tfs) \"\(tf.placeholder ?? "-")\","
-                            }
-                            errorMessage += "\ntextfields: \(tfs);"
-                        }
-
-                        errorMessage = errorMessage.replacingOccurrences(of: ",;", with: ";")
-                    }
-                    let action = LeakedViewControllerDetector.callback?(self, nil, "\(errorTitle) \(errorMessage)")
-                    var screenshot: UIImage?
-                    if action == .showAlert || action == .showAlertWithoutScreenshot {
-                        screenshot = action == .showAlert ? view?.rootView.makeScreenshot() : nil
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                            Self.lvcdShowWarningAlert(
-                                errorTitle: errorTitle,
-                                errorMessage: errorMessage,
-                                objectIdentifier: Int(bitPattern: ObjectIdentifier(self)),
-                                screenshot: screenshot
-                            )
-                        }
-                    }
+                if action != .falsePositive {
+                    // once warned don't warn again
+                    NotificationCenter.lvcd.removeObserver(
+                        self,
+                        name: Self.lvcdCheckForMemoryLeakNotification,
+                        object: nil
+                    )
                     
-                    if action != .falsePositive {
-                        // once warned don't warn again
-                        NotificationCenter.lvcd.removeObserver(
-                            self,
-                            name: Self.lvcdCheckForMemoryLeakNotification,
-                            object: nil
-                        )
-                        
-                        deallocator.memoryLeakDetectionDate = Date().timeIntervalSince1970 - delay
-                        deallocator.errorMessage = errorMessage
-                        deallocator.objectIdentifier = Int(bitPattern: ObjectIdentifier(self))
-                        deallocator.objectType = "VIEWCONTROLLER"
-                        deallocator.screenshot = screenshot
-                    }
+                    deallocator.memoryLeakDetectionDate = Date().timeIntervalSince1970 - delay
+                    deallocator.errorMessage = errorMessage
+                    deallocator.objectIdentifier = Int(bitPattern: ObjectIdentifier(self))
+                    deallocator.objectType = "VIEWCONTROLLER"
+                    deallocator.screenshot = screenshot
                 }
             }
-//        }
+        }
+
     }
 
     // call this if VC deinits, if memory leak was detected earlier it apparently resolved itself, so notify this:
@@ -760,27 +742,6 @@ private extension UIViewController {
             imgAction.isEnabled = false
             imgAction.setValue(screenshot.withRenderingMode(.alwaysOriginal), forKey: "image")
             alert.addAction(imgAction)
-            var bgFound = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1/10.0) {
-                alert.view.iterateSubviews() { view, level  in
-                    // Try to get rid of ugly circle background, no big deal if this fails
-                    if type(of: view).description() == "_UIAlertControllerFilledBackgroundView" {
-                        if !bgFound {
-                            view.alpha = 0
-                            bgFound = true
-                        }
-                    }
-                    if let imageView = view as? UIImageView {
-                        imageView.layer.shadowColor = UIColor.black.cgColor
-                        imageView.layer.shadowOpacity = 0.15
-                        imageView.layer.shadowOffset = .init(width: 0, height: 0.5)
-                        imageView.layer.shadowRadius = 2
-                        view.frame = .init(x: (view.superview!.frame.width - view.frame.width) * 0.5, y: 6, width: view.frame.width, height: view.frame.height)
-                        
-                    }
-                    return true
-                }
-            }
         }
         lvcdShowWarningAlert(alert)
     }
@@ -804,6 +765,7 @@ private extension UIViewController {
                     tagAlertController.view.transform = .init(scaleX: 1.0, y: 1.0)
 //                    tagAlertController.view.alpha = 1.0
                 }
+                tagAlertController.scrollToBottom()
             } else if
                 let topViewController = UIApplication
                     .lvcdTopViewController(controller: warningWindow.rootViewController)
@@ -875,6 +837,47 @@ private extension UIViewController {
             super.viewWillAppear(animated)
             updateWindowColor()
             view.superview?.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(alertBackgroundTapped)))
+            
+            if actions.count > 1 { // screenshot present
+                var bgFound = false
+                self.view.iterateSubviews() { view, level  in
+                    // Try to get rid of ugly circle background, no big deal if this fails
+                    if type(of: view).description() == "_UIAlertControllerFilledBackgroundView" {
+                        if !bgFound {
+                            view.alpha = 0
+                            bgFound = true
+                            print("_UIAlertControllerFilledBackgroundView")
+                        }
+                    }
+                    if let imageView = view as? UIImageView {
+                        imageView.layer.shadowColor = UIColor.black.cgColor
+                        imageView.layer.shadowOpacity = 0.15
+                        imageView.layer.shadowOffset = .init(width: 0, height: 0.5)
+                        imageView.layer.shadowRadius = 2
+                        view.frame = .init(x: (view.superview!.frame.width - view.frame.width) * 0.5, y: 6, width: view.frame.width, height: view.frame.height)
+                        
+                    }
+                    return true
+                }
+                scrollToBottom()
+            }
+        }
+        
+        // when a long screenshot is shown scroll down the make sure OK button stays visible
+        func scrollToBottom() {
+            self.view.iterateSubviews() { view, level  in
+                if let scrollView = view as? UIScrollView {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.0) {
+                        scrollView.setContentOffset(.zero, animated: false)
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        let bottomOffset = CGPoint(x: 0, y: scrollView.contentSize.height - scrollView.bounds.height + scrollView.contentInset.bottom + 00)
+                        scrollView.setContentOffset(bottomOffset, animated: true)
+                        scrollView.flashScrollIndicators()
+                    }
+                }
+                return true
+            }
         }
         
         @objc func alertBackgroundTapped() {
@@ -983,6 +986,7 @@ private class LVCDDeallocator {
     var objectIdentifier = 0
     var objectType = ""
     var screenshot: UIImage?
+    var pending = false // in some cases lvcdCheckForMemoryLeakNotification may be called multiple times at once, this prevents double checking
 
     // used by ViewController
     var strongView: UIView?
