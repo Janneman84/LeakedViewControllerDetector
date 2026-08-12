@@ -42,7 +42,7 @@ Add the following to your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Janneman84/LeakedViewControllerDetector.git", from: "1.3.0")
+    .package(url: "https://github.com/Janneman84/LeakedViewControllerDetector.git", from: "1.4.0")
 ]
 ```
 
@@ -66,11 +66,11 @@ Add this code to `application(_:didFinishLaunchingWithOptions:)` in your `AppDel
 LeakedViewControllerDetector.onDetect() { leakedViewController, leakedView, message in
     #if DEBUG
     print(message)
-    return true // Show warning alert dialog
+    return .showAlert // Show warning alert dialog
     #else
     // Log warning message to your analytics service (e.g., Crashlytics)
     // CrashlyticsLogger.log(message)
-    return false // Don't show warning to users
+    return .dontShowAlert // Don't show warning to users
     #endif
 }
 ```
@@ -141,33 +141,33 @@ tabBarController?.viewControllers?[3].removeFromParent()
 ```swift
 LeakedViewControllerDetector.onDetect(detectionDelay: 2.0) { leakedViewController, leakedView, message in
     // Custom delay of 2 seconds before considering something leaked
-    return true
+    return .showAlert
 }
 ```
 
 ### Ignoring Specific Classes
 
-You can ignore warnings for specific classes by returning `nil`:
+You can ignore warnings for specific classes by returning `.falsePositive`:
 
 ```swift
 LeakedViewControllerDetector.onDetect() { leakedViewController, leakedView, message in
     // Ignore specific ViewControllers
-    if let leakedViewController = leakedViewController {
-        if leakedViewController is UIImagePickerController { return nil }
-        if leakedViewController is SomeCustomViewController { return nil }
-        if type(of: leakedViewController).description().contains("Private") { return nil }
+    if let leakedViewController {
+        if leakedViewController is UIImagePickerController { return .falsePositive }
+        if leakedViewController is SomeCustomViewController { return .falsePositive }
+        if type(of: leakedViewController).description().contains("Private") { return .falsePositive }
     }
     
     // Ignore specific Views
-    if let leakedView = leakedView {
-        if leakedView is SomeCustomView { return nil }
-        if leakedView.tag == -1 { return nil }
+    if let leakedView {
+        if leakedView is SomeCustomView { return .falsePositive }
+        if leakedView.tag == -1 { return .falsePositive }
     }
     
     #if DEBUG
-    return true
+    return .showAlert
     #else
-    return false
+    return .dontShowAlert
     #endif
 }
 ```
@@ -195,7 +195,7 @@ let detectionDelay: TimeInterval = 2.0 // More lenient in production
 LeakedViewControllerDetector.onDetect(detectionDelay: detectionDelay) { leakedViewController, leakedView, message in
     #if DEBUG
     print("🚨 Memory Leak Detected: \(message)")
-    return true // Show alert in debug
+    return .showAlert
     #else
     // Log to your analytics service
     Analytics.logError("MemoryLeak", parameters: ["message": message])
@@ -208,7 +208,7 @@ LeakedViewControllerDetector.onDetect(detectionDelay: detectionDelay) { leakedVi
     )
     Crashlytics.crashlytics().record(error: error)
     
-    return false // Don't show alerts to users
+    return .dontShowAlert
     #endif
 }
 ```
@@ -441,7 +441,7 @@ While this package focuses on ViewControllers and Views, use Instruments for com
 #if DEBUG
 LeakedViewControllerDetector.onDetect(detectionDelay: 0.5) { _, _, message in
     print(message)
-    return true
+    return .showAlert
 }
 #endif
 ```
