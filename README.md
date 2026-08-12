@@ -74,8 +74,15 @@ LeakedViewControllerDetector.onDetect() { leakedViewController, leakedView, mess
     #endif
 }
 ```
+Objective-C basic example:
+```Objective-C
+[LeakedViewControllerDetector onDetectWithDetectionDelay:1 callback:^Action(UIViewController *viewController, UIView *view, NSString *text) {
+    ...
+    return ActionShowAlert;
+}];
+```
 
-That's it! The leak detector is now running and will alert you of any memory leaks.
+That's it! The leak detector is now running and will alert you of any leaked Views and ViewControllers.
 </details>
 
 ## Configuration
