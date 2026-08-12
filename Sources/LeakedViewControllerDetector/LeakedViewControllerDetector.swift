@@ -397,11 +397,11 @@ private extension UIViewController {
 //        let originalVwaMethod = class_getInstanceMethod(UIViewController.self, #selector(viewWillAppear(_:)))
 //        let swizzledVwaMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdViewWillAppear(_:)))
 //        method_exchangeImplementations(originalVwaMethod!, swizzledVwaMethod!)
-//        
+//
 //        let originalViaMethod = class_getInstanceMethod(UIViewController.self, #selector(viewIsAppearing(_:)))
 //        let swizzledViaMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdViewIsAppearing(_:)))
 //        method_exchangeImplementations(originalViaMethod!, swizzledViaMethod!)
-//        
+//
 //        let originalVdaMethod = class_getInstanceMethod(UIViewController.self, #selector(viewDidAppear(_:)))
 //        let swizzledVdaMethod = class_getInstanceMethod(UIViewController.self, #selector(lvcdViewDidAppear(_:)))
 //        method_exchangeImplementations(originalVdaMethod!, swizzledVdaMethod!)
@@ -500,14 +500,14 @@ private extension UIViewController {
 //            self?.setAssociatedObject()
 //        }
 //    }
-//    
+//
 //    @objc private func lvcdViewIsAppearing(_ animated: Bool) {
 //        lvcdViewIsAppearing(animated) // run original implementation
 //        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
 //            self?.setAssociatedObject()
 //        }
 //    }
-//    
+//
 //    @objc private func lvcdViewDidAppear(_ animated: Bool) {
 //        lvcdViewDidAppear(animated) // run original implementation
 //        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
@@ -525,7 +525,7 @@ private extension UIViewController {
     @objc private func lvcdViewDidDisappear(_ animated: Bool) {
         lvcdViewDidDisappear(animated) // run original implementation
 //        DispatchQueue.main.async() { [weak self] in
-            self .setAssociatedObject()
+            self.setAssociatedObject()
 //        }
         // ignore parent VCs because one of their children will trigger viewDidDisappear() too
         if
@@ -613,27 +613,39 @@ private extension UIViewController {
                 presentedViewController == nil,
                 view == nil || view.superview == nil || (type(of: view.rootView).description() == "UILayoutContainerView" && view.rootView.viewController == nil)
             {
-                let errorTitle = "VIEWCONTROLLER STILL IN MEMORY"
+                var errorTitle = "VIEWCONTROLLER STILL IN MEMORY"
                 var errorMessage = debugDescription.lvcdRemoveBundleAndModuleName()
-
+                
                 // add children's names to the message in case of NavVC or TabVC for easier identification
                 if let nvc = self as? UINavigationController {
-                    errorMessage = "\(errorMessage):\n\(nvc.viewControllers)"
+                    errorTitle = "NAVIGATIONCONTROLLER STILL IN MEMORY"
+                    var count = 1
+                    nvc.viewControllers.forEach({
+                        errorMessage = "\(errorMessage)\n📄 \($0.debugDescription.lvcdRemoveBundleAndModuleName())"
+                        count += 1
+                    })
                 }
                 if let tbvc = self as? UITabBarController, let vcs = tbvc.viewControllers {
-                    errorMessage = "\(errorMessage):\n\(vcs)"
+                    errorTitle = "TABBARCONTROLLER STILL IN MEMORY"
+                    var count = 1
+                    vcs.forEach({
+                        errorMessage = "\(errorMessage)\n📄 \($0.debugDescription.lvcdRemoveBundleAndModuleName())"
+                        count += 1
+                    })
                 }
                 // add alert title/message to the message for easier identification
                 if let alertVC = self as? UIAlertController {
+                    errorTitle = "ALERTCONTROLLER STILL IN MEMORY"
+                    
                     var actions = alertVC.actions.isEmpty ? "-" : ""
                     for action in alertVC.actions {
                         actions = "\(actions) \"\(action.title ?? "-")\","
                     }
-
+                    
                     let title = (alertVC.title ?? "").isEmpty ? "" : alertVC.title!
                     let message = (alertVC.message ?? "").isEmpty ? "" : alertVC.message!
                     errorMessage = "\(errorMessage)\n title: \"\(title)\";\nmessage: \"\(message)\";\nactions: \(actions);"
-
+                    
                     if !(alertVC.textFields ?? []).isEmpty {
                         var tfs = ""
                         for tf in alertVC.textFields ?? [] {
@@ -641,7 +653,7 @@ private extension UIViewController {
                         }
                         errorMessage += "\ntextfields: \(tfs);"
                     }
-
+                    
                     errorMessage = errorMessage.replacingOccurrences(of: ",;", with: ";")
                 }
                 let action = LeakedViewControllerDetector.callback?(self, nil, "\(errorTitle) \(errorMessage)")
@@ -657,7 +669,6 @@ private extension UIViewController {
                         )
                     }
                 }
-                
                 if action != .falsePositive {
                     // once warned don't warn again
                     NotificationCenter.lvcd.removeObserver(
@@ -670,6 +681,15 @@ private extension UIViewController {
                     deallocator.errorMessage = errorMessage
                     deallocator.objectIdentifier = Int(bitPattern: ObjectIdentifier(self))
                     deallocator.objectType = "VIEWCONTROLLER"
+                    if self is UINavigationController {
+                        deallocator.objectType = "NAVIGATIONCONTROLLER"
+                    }
+                    if self is UITabBarController {
+                        deallocator.objectType =  "TABBARCONTROLLER"
+                    }
+                    if self is UIAlertController {
+                        deallocator.objectType = "ALERTCONTROLLER"
+                    }
                     deallocator.screenshot = screenshot
                 }
             }
@@ -677,7 +697,7 @@ private extension UIViewController {
 
     }
 
-    // call this if VC deinits, if memory leak was detected earlier it apparently resolved itself, so notify this:
+    // Call this if VC deinits, if memory leak was detected earlier it apparently resolved itself, so notify this:
     @MainActor
     class func lvcdMemoryLeakResolved(
         memoryLeakDetectionDate: TimeInterval,
@@ -688,10 +708,10 @@ private extension UIViewController {
     ) {
         let interval = Date().timeIntervalSince1970 - memoryLeakDetectionDate
 
-        let errorTitle = "LEAKED \(objectType) DEINNITED"
-        let errorMessage = String(format: "\(errorMessage)\n\nDeinnited after %.3fs.", interval)
+        let errorTitle = "LEAKED \(objectType) DEINITED"
+        let errorMessage = String(format: "\(errorMessage)\n\nDeinited after %.3fs.", interval)
         let action = LeakedViewControllerDetector.callback?(nil, nil, "\(errorTitle) \(errorMessage)")
-        
+               
         if action == .showAlert || action == .showAlertWithoutScreenshot {
             Self.lvcdShowWarningAlert(
                 errorTitle: errorTitle,
@@ -701,6 +721,11 @@ private extension UIViewController {
                 screenshot: action == .showAlert ? screenshot : nil
             )
         }
+        
+//        if objectType.contains("CONTROLLER") {
+//            // Check again to make sure there are no leaked children.
+//            NotificationCenter.lvcd.post(name: Self.lvcdCheckForMemoryLeakNotification, object: nil)
+//        }
     }
 
     @MainActor
@@ -728,9 +753,13 @@ private extension UIViewController {
             ? UIColor.systemTeal.withAlphaComponent(0.30)
             : UIColor.systemPink.withAlphaComponent(0.25)
         alert.view.tag = objectIdentifier
-        alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.cancel) { _ in
+        alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.cancel) {[weak alert] _ in
             if LeakedViewControllerDetector.warningWindow?.rootViewController?.presentedViewController == nil {
                 LeakedViewControllerDetector.warningWindow = nil
+            }
+            if alert?.title?.contains("CONTROLLER DEINITED") ?? false {
+                // Check again to make sure there are no leaked children.
+                NotificationCenter.lvcd.post(name: Self.lvcdCheckForMemoryLeakNotification, object: nil)
             }
         })
         alert.preferredAction = alert.actions.first!
