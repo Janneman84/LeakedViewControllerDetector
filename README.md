@@ -76,7 +76,7 @@ LeakedViewControllerDetector.onDetect() { leakedViewController, leakedView, mess
 ```
 Objective-C basic example:
 ```Objective-C
-[LeakedViewControllerDetector onDetectWithDetectionDelay:1 callback:^Action(UIViewController *viewController, UIView *view, NSString *text) {
+[LeakedViewControllerDetector onDetectWithDetectionDelay:1 callback:^Action(UIViewController *leakedViewController, UIView *leakedView, NSString *message) {
     ...
     return ActionShowAlert;
 }];
