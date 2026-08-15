@@ -21,8 +21,11 @@ class EdgeCaseTests: XCTestCase {
 
         LeakedViewControllerDetector.ignoredViewControllerClassNames.append("LeakedViewControllerDetectorTests.MockIgnoredViewControllert")
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { vc, view, _ in
-            print(vc)
-            expectation.fulfill()
+            if let vc {
+                print(type(of: vc).description())
+                print(LeakedViewControllerDetector.ignoredViewControllerClassNames)
+                expectation.fulfill()
+            }
             return .dontShowAlert
         }
 

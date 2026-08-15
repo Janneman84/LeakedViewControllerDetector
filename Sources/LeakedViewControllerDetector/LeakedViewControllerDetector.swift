@@ -16,7 +16,7 @@ import UIKit
 
 @MainActor
 public class LeakedViewControllerDetector: NSObject {
-    fileprivate static var callback: (@Sendable (UIViewController?, UIView?, String) -> Action)?
+    fileprivate static var callback: (@MainActor (UIViewController?, UIView?, String) -> Action)?
     fileprivate static var delay: Double = 1.0
     fileprivate static var warningWindow: UIWindow?
     fileprivate static var lastBackgroundedDate = Date(timeIntervalSince1970: 0)
@@ -29,7 +29,7 @@ public class LeakedViewControllerDetector: NSObject {
       */
     @objc public static func onDetect(
         detectionDelay: TimeInterval = 1.0,
-        callback: @escaping @Sendable (UIViewController?, UIView?, String) -> Action
+        callback: @escaping @MainActor (UIViewController?, UIView?, String) -> Action
     ) {
         UIViewController.lvcdSwizzleLifecycleMethods()
         delay = detectionDelay
