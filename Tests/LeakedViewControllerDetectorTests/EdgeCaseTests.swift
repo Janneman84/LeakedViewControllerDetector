@@ -19,7 +19,7 @@ class EdgeCaseTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Detection should not be triggered for ignored classes")
         expectation.isInverted = true
 
-        LeakedViewControllerDetector.ignoredViewControllerClassNames.append("LeakedViewControllerDetectorTests.MockIgnoredViewControllert")
+        LeakedViewControllerDetector.ignoredViewControllerClassNames.append("LeakedViewControllerDetectorTests.MockIgnoredViewController")
         LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { vc, view, _ in
             if let vc {
                 print(type(of: vc).description())
