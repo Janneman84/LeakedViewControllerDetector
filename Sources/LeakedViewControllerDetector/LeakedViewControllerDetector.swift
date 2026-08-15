@@ -656,17 +656,17 @@ private extension UIViewController {
                     
                     let title = (alertVC.title ?? "").isEmpty ? "" : alertVC.title!
                     let message = (alertVC.message ?? "").isEmpty ? "" : alertVC.message!
-                    errorMessage = "\(errorMessage)\n title: \"\(title)\";\nmessage: \"\(message)\";\nactions: \(actions);"
+                    errorMessage = "\(errorMessage)\ntitle: \"\(title)\"\nmessage: \"\(message)\"\nactions: \(actions);"
                     
                     if !(alertVC.textFields ?? []).isEmpty {
                         var tfs = ""
                         for tf in alertVC.textFields ?? [] {
-                            tfs = "\(tfs) \"\(tf.placeholder ?? "-")\","
+                            tfs = "\(tfs) \"\(tf.placeholder ?? "_")\","
                         }
                         errorMessage += "\ntextfields: \(tfs);"
                     }
                     
-                    errorMessage = errorMessage.replacingOccurrences(of: ",;", with: ";")
+                    errorMessage = errorMessage.replacingOccurrences(of: ",;", with: "")
                 }
                 let action = LeakedViewControllerDetector.callback?(self, nil, "\(errorTitle) \(errorMessage)")
                 var screenshot: UIImage?
