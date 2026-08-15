@@ -228,7 +228,7 @@ class ViewLeakTests: XCTestCase {
     }
 
     // MARK: - Gesture Recognizer Tests
-
+    #if os(iOS)
     func testViewWithGestureRecognizersLeakDetection() {
         // Test view with gesture recognizers functionality without requiring leak detection
         let containerView = UIView(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
@@ -259,6 +259,7 @@ class ViewLeakTests: XCTestCase {
         // Verify removal
         XCTAssertEqual(containerView.subviews.count, 0, "Container should have no subviews after removal")
     }
+    #endif
 
     // MARK: - Layer Tests
 
