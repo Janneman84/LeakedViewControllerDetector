@@ -20,7 +20,8 @@ class EdgeCaseTests: XCTestCase {
         expectation.isInverted = true
 
         LeakedViewControllerDetector.ignoredViewControllerClassNames.append("LeakedViewControllerDetectorTests.MockIgnoredViewControllert")
-        LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { _, _, _ in
+        LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { vc, view, _ in
+            print(vc)
             expectation.fulfill()
             return .dontShowAlert
         }
@@ -134,8 +135,10 @@ class EdgeCaseTests: XCTestCase {
     func testDetectionWithLargeViewHierarchy() async {
         let expectation = XCTestExpectation(description: "Large view hierarchy should be detected if leaked")
 
-        LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { _, _, _ in
-            expectation.fulfill()
+        LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { _, view, _ in
+            if view != nil {
+                expectation.fulfill()
+            }
             return .dontShowAlert
         }
 
