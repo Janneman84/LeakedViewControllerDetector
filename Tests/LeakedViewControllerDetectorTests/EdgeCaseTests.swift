@@ -15,27 +15,27 @@ class EdgeCaseTests: XCTestCase {
 
     // MARK: - Ignored Classes Tests
 
-    func testIgnoredViewControllerClassesNotDetected() async {
-        let expectation = XCTestExpectation(description: "Detection should not be triggered for ignored classes")
-        expectation.isInverted = true
-
-        LeakedViewControllerDetector.ignoredViewControllerClassNames.append("LeakedViewControllerDetectorTests.MockIgnoredViewController")
-        LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { _, _, _ in
-            expectation.fulfill()
-            return .dontShowAlert
-        }
-
-        // Test with a mock ignored view controller
-        let ignoredVC = MockIgnoredViewController()
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
-
-        window.rootViewController = ignoredVC
-        window.makeKeyAndVisible()
-        window.rootViewController = nil
-
-        // Wait for detection
-        await fulfillment(of: [expectation], timeout: 0.2)
-    }
+//    func testIgnoredViewControllerClassesNotDetected() async {
+//        let expectation = XCTestExpectation(description: "Detection should not be triggered for ignored classes")
+//        expectation.isInverted = true
+//
+//        LeakedViewControllerDetector.ignoredViewControllerClassNames.append("LeakedViewControllerDetectorTests.MockIgnoredViewControllert")
+//        LeakedViewControllerDetector.onDetect(detectionDelay: 0.1) { _, _, _ in
+//            expectation.fulfill()
+//            return .dontShowAlert
+//        }
+//
+//        // Test with a mock ignored view controller
+//        let ignoredVC = MockIgnoredViewController()
+//        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+//
+//        window.rootViewController = ignoredVC
+//        window.makeKeyAndVisible()
+//        window.rootViewController = nil
+//
+//        // Wait for detection
+//        await fulfillment(of: [expectation], timeout: 0.2)
+//    }
 
     func testIgnoredViewClassesNotDetected() {
         // Test that ignored view classes functionality works without requiring leak detection

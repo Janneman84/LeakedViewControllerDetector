@@ -233,10 +233,16 @@ private extension UIView {
         // stick to two levels for now, seems to work best without constraint warnings
         // level 3 is necessary for getting UIAlert radius
         iterateSubviews(maxLevel: 3) { subview, level in
+            
+            var isToolbar = false
+            #if os(iOS)
+            isToolbar = subview is UIToolbar
+            #endif
+            
             if !(subview is UINavigationBar ||
                  subview is UICollectionViewCell ||
                  subview is UITabBar ||
-                 subview is UIToolbar ||
+                 isToolbar ||
                  level > 2) {
                 wasTARMICS[ObjectIdentifier(subview)] = subview.translatesAutoresizingMaskIntoConstraints
                 subview.translatesAutoresizingMaskIntoConstraints = true
@@ -332,11 +338,17 @@ private extension UIView {
         alpha = wasAlpha
         isHidden = wasHidden
         iterateSubviews { subview, level in
+            
+            var isToolbar = false
+            #if os(iOS)
+            isToolbar = subview is UIToolbar
+            #endif
+            
             if !(
                 subview is UINavigationBar ||
                 subview is UICollectionViewCell ||
                 subview is UITabBar ||
-                subview is UIToolbar ||
+                isToolbar ||
                 level > 2) {
                 subview.translatesAutoresizingMaskIntoConstraints = wasTARMICS[ObjectIdentifier(subview)] ?? subview
                     .translatesAutoresizingMaskIntoConstraints
@@ -739,11 +751,6 @@ private extension UIViewController {
         objectIdentifier: Int,
         screenshot: UIImage? = nil
     ) {
-        var iosOnMac = false
-        if #available(iOS 13, tvOS 13, *) {
-            iosOnMac = ProcessInfo.processInfo.isMacCatalystApp
-        }
-
         let alert = LVCDAlertController(
             title: errorTitle,
             message: errorMessage,
@@ -765,6 +772,10 @@ private extension UIViewController {
         alert.preferredAction = alert.actions.first!
 
         if let screenshot {
+//            var iosOnMac = false
+//            if #available(iOS 13, tvOS 13, *) {
+//                iosOnMac = ProcessInfo.processInfo.isMacCatalystApp
+//            }
 //            let maxWidth: CGFloat = 240-(iosOnMac ? 12 : 0) //alert content width hard coded for now
             
             let imgAction = UIAlertAction(title: "", style: .default, handler: nil)
