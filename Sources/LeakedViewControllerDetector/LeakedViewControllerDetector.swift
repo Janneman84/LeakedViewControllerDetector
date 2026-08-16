@@ -479,9 +479,9 @@ private extension UIViewController {
                     .OBJC_ASSOCIATION_RETAIN
                 )
                 addCheckForMemoryLeakObserver(skipIgnoreCheck: true)
-                if warn {
+//                if warn {
 //                    print("super.viewDidLoad() not called? \(self)")
-                }
+//                }
             }
         }
     }
@@ -882,15 +882,12 @@ private extension UIViewController {
             view.superview?.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(alertBackgroundTapped)))
             
             if actions.count > 1 { // screenshot present
-                var bgFound = false
+                var backgroundFound = false
                 self.view.iterateSubviews() { view, level  in
                     // Try to get rid of ugly circle background, no big deal if this fails
-                    if type(of: view).description() == "_UIAlertControllerFilledBackgroundView" {
-                        if !bgFound {
-                            view.alpha = 0
-                            bgFound = true
-                            print("_UIAlertControllerFilledBackgroundView")
-                        }
+                    if !backgroundFound && type(of: view).description() == "_UIAlertControllerFilledBackgroundView" {
+                        view.alpha = 0
+                        backgroundFound = true
                     }
                     if let imageView = view as? UIImageView {
                         imageView.layer.shadowColor = UIColor.black.cgColor
