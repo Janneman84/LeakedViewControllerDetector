@@ -23,7 +23,7 @@ jobs:
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: 'latest-stable'
+        xcode-version: '26.5' #'latest-stable'
 
     - name: Run tests
       run: xcodebuild -scheme LeakedViewControllerDetector -destination '${{ matrix.destination }}' test
