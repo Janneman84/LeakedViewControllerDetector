@@ -286,7 +286,10 @@ private extension UIView {
         guard unclippedFrame.size.width > 0, unclippedFrame.size.height > 0 else { return nil }
 
         let container2 = UIView(frame: .init(origin: .zero, size: unclippedFrame.size))
+        container2.backgroundColor = UIColor.white.withAlphaComponent(0.1)
+        #if os(iOS)
         container2.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.1)
+        #endif
         container2.addSubview(container)
         container.frame = .init(
             x: 0 - unclippedFrame.minX,
